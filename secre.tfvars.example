@@ -1,7 +1,0 @@
-client_id = "0oan5fvjhpv7pJzNn5d7"
-private_key_id = "ubzI8b7OEQSHYIDWCBiHIWCx2VmRqWQX7KSbhh3Yuhg"
-private_key = <<EOT
------BEGIN PRIVATE KEY-----
-KEY HERE
------END PRIVATE KEY-----
-EOT
