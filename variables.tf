@@ -168,19 +168,16 @@ variable "key_years_valid" {
 variable "label" {
   description = "Application label"
   type        = string
-  default     = "custom"
 }
 
 variable "logo" {
   description = "Logo URL"
   type        = string
-  default     = null
 }
 
 variable "preconfigured_app" {
   description = "Preconfigured application ID"
   type        = string
-  default     = "dev-97570053_custom_1"
 }
 
 variable "recipient" {
@@ -246,7 +243,6 @@ variable "sp_issuer" {
 variable "sso_url" {
   description = "SSO URL"
   type        = string
-  default     = "https://test.com"
 }
 
 variable "status" {

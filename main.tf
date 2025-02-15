@@ -1,10 +1,5 @@
-data "okta_policy" "access" {
-  name = var.policy_name
-  type = var.policy_type
-}
-
 locals {
-  app_settings_json = jsonencode({
+  app_settings = {
     accessibility_error_redirect_url = var.accessibility_error_redirect_url
     accessibility_login_redirect_url = var.accessibility_login_redirect_url
     accessibility_self_service       = var.accessibility_self_service
@@ -49,6 +44,9 @@ locals {
     user_name_template_suffix        = var.user_name_template_suffix
     user_name_template_type          = var.user_name_template_type
     attribute_statements             = var.attribute_statements
+  }
+    app_settings_json = jsonencode({
+    for key, value in local.app_settings : key => value if value != null
   })
 }
 
