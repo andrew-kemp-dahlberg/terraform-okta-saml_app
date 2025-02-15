@@ -2,15 +2,19 @@
 # Please review these resources and move them into your main configuration files.
 
 # __generated__ by Terraform from "0oandia7woukWyBit5d7"
-resource "okta_app_saml" "test" {
+resource "okta_app_saml_app_settings" "okta_app_saml_app_settings" {
+  app_id   = "0oandia7woukWyBit5d7"
+  settings = jsonencode({})
+}
+
+# __generated__ by Terraform from "0oandia7woukWyBit5d7"
+resource "okta_app_saml" "saml_app" {
   accessibility_error_redirect_url = null
   accessibility_login_redirect_url = null
   accessibility_self_service       = false
   acs_endpoints                    = []
   admin_note                       = null
-  app_links_json = jsonencode({
-    dev-97570053_custom_1_link = true
-  })
+
   app_settings_json              = jsonencode({})
   assertion_signed               = true
   audience                       = "https://test.com"
@@ -65,5 +69,13 @@ resource "okta_app_saml" "test" {
     namespace    = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
     type         = "EXPRESSION"
     values       = ["user.lastName"]
+  }
+  attribute_statements {
+    filter_type  = "REGEX"
+    filter_value = ".*"
+    name         = "group"
+    namespace    = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+    type         = "GROUP"
+    values       = []
   }
 }
