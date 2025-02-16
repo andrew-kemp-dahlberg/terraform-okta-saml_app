@@ -4,6 +4,7 @@ locals {
 resource "okta_app_signon_policy" "authentication_policy" {
   description = "Default policy that requir"
   name        = "Any two factors"
+  catch_all   = false
 }
 
 resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
@@ -22,7 +23,7 @@ resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
   network_excludes            = null
   network_includes            = null
   policy_id                   = okta_app_signon_policy.authentication_policy.id
-  priority                    = 3
+  priority                    = 1
   re_authentication_frequency = "PT43800H"
   risk_score                  = "ANY"
   status                      = "ACTIVE"
@@ -59,7 +60,7 @@ resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
   network_excludes            = null
   network_includes            = null
   policy_id                   = "rsto89gt30Dn9uLiy2p7"
-  priority                    = 4
+  priority                    = 2
   re_authentication_frequency = "PT43800H"
   risk_score                  = "ANY"
   status                      = "ACTIVE"
@@ -86,7 +87,7 @@ resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
   network_excludes            = null
   network_includes            = null
   policy_id                   = "rsto89gt30Dn9uLiy2p7"
-  priority                    = 6
+  priority                    = 3
   re_authentication_frequency = "PT43800H"
   risk_score                  = "ANY"
   status                      = "ACTIVE"
