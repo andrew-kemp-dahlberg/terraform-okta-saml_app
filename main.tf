@@ -1,10 +1,9 @@
 locals {
-  authentication_policy_name = ${}
+  authentication_policy_name = ${var.label}
 }
 resource "okta_app_signon_policy" "authentication_policy" {
   description = "Default policy that requir"
   name        = "Any two factors"
-  catch_all   = false
 }
 
 resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
@@ -113,11 +112,7 @@ resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
   }
 }
 
-
-
-
-locals {
-  app_settings = {
+resource "okta_app_saml" "saml_app" {
     accessibility_error_redirect_url = var.accessibility_error_redirect_url
     accessibility_login_redirect_url = var.accessibility_login_redirect_url
     accessibility_self_service       = var.accessibility_self_service
@@ -161,14 +156,17 @@ locals {
     user_name_template_push_status   = var.user_name_template_push_status
     user_name_template_suffix        = var.user_name_template_suffix
     user_name_template_type          = var.user_name_template_type
-    attribute_statements             = var.attribute_statements
-  }
-    app_settings_json = jsonencode({
-    for key, value in local.app_settings : key => value if value != null
-  })
-}
+    dynamic "attribute_statements" {
+    for_each = var.attribute_statements
+    iterator = attr
 
-resource "okta_app_saml" "saml_app" {
-  label             = var.label
-  app_settings_json = local.app_settings_json
+    content {
+      name         = attr.value.name
+      type         = attr.value.type
+      values       = attr.value.values
+      filter_type  = attr.value.filter_type
+      filter_value = attr.value.filter_value
+      namespace    = attr.value.namespace
+    }
+  }
 }
