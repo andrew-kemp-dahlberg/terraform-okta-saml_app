@@ -1,10 +1,65 @@
+variable "attribute_statements" {
+  description = "List of Objects containing, type (user or group), name, formation, filter_value for group attributes that is a regex, "
+  type = list(object({
+    type         = string
+    name         = string
+    name_format  = optional(string, "unspecified")
+    filter_value = optional(string, null)
+    values       = optional(list(string), [])
+  }))
+  default = null
+
+  validation {
+    condition = var.attribute_statements == null ? true : alltrue([
+      for attr in var.attribute_statements : 
+      (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
+      (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
+    ])
+    error_message = <<EOT
+Invalid configuration:
+- User types must have non-empty "values" and no filter_value
+- Group types must have "filter_value" and no "values"
+EOT
+  }
+
+  validation {
+    condition = var.attribute_statements == null ? true : alltrue([
+      for attr in var.attribute_statements : 
+      contains(["user", "group"], attr.type) &&
+      contains(["basic", "uri reference", "unspecified"], attr.name_format)
+    ])
+    error_message = <<EOT
+Validation errors:
+- Type must be 'user' or 'group'
+- name_format must be 'basic', 'uri reference', or 'unspecified'
+EOT
+  }
+}
+
 locals {
-  authentication_policy_name = ${var.label}
+    attribute_statements = [
+    for attr in var.attribute_statements : {
+      name         = attr.name
+      namespace    = lookup({
+        "basic"          = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference"  = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"    = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+      filter_type  = attr.type == "group" ? "REGEX" : null
+      filter_value = attr.type == "group" ? attr.filter_value : null
+      values       = attr.type == "user" ? attr.values : []
+    }
+  ]
+}
+locals {
+  authentication_policy_name = "${var.label} Authentication Policy"
 }
 resource "okta_app_signon_policy" "authentication_policy" {
   description = "Default policy that requir"
-  name        = "Any two factors"
+  name        = local.authentication_policy_name
 }
+
 
 resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
   access                      = "ALLOW"
@@ -157,7 +212,7 @@ resource "okta_app_saml" "saml_app" {
     user_name_template_suffix        = var.user_name_template_suffix
     user_name_template_type          = var.user_name_template_type
     dynamic "attribute_statements" {
-    for_each = var.attribute_statements
+    for_each = local.attribute_statements
     iterator = attr
 
     content {

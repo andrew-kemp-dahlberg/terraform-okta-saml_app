@@ -324,3 +324,15 @@ variable "attribute_statements" {
     }
   ]
 }
+
+variable "attribute_statements" {
+  description = "List of Objects containing, type (user or group), name, formation, filter_value for group attributes that is a regex, "
+  type = list(object({
+    type         = string
+    name         = string
+    name_format  = optional(string, "unspecified")
+    filter_value = optional(string, null)
+    values       = optional(list(string), [])
+  }))
+  default = null
+}
