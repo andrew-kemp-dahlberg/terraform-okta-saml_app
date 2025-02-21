@@ -351,10 +351,18 @@ variable "signon_policy_rules" {
   }))
 
   default = [
+    { # Admin
+      name            = "Super Admin Authentication Policy Rule"
+      constraints     = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
+      groups_included = [okta_group.admin_group.id]
+      device_assurances_included = [var.device_assurances_policy_ids.Mac, var.device_assurance_policy_ids.Windows, var.device_assurances_policy_ids.iOS, var.device_assurances_policy_ids.Android]
+      device_is_managed          = true
+      device_is_registered       = true
+      
+    },
     { # Mac and Windows Devices
       name            = "Mac and Windows Devices"
       constraints     = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      groups_included = ["00g11p7vbcqI3vXBt2p8"]
       platform_includes = [
         { os_type = "MACOS", type = "DESKTOP" },
         { os_type = "WINDOWS", type = "DESKTOP" }
@@ -363,10 +371,7 @@ variable "signon_policy_rules" {
     { # Android and iOS devices
       name                       = "Android and iOS devices"
       constraints                = ["{\"knowledge\":{\"required\":false},\"possession\":{\"authenticationMethods\":[{\"key\":\"okta_verify\",\"method\":\"signed_nonce\"}],\"required\":false,\"hardwareProtection\":\"REQUIRED\",\"phishingResistant\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-      device_assurances_included = ["daeya6jtpsaMCFM4h2p7", "daeya6odzfBCEPM8F2p7"]
-      device_is_managed          = false
-      device_is_registered       = false
-      groups_included            = ["00g11p7vbcqI3vXBt2p8"]
+      device_assurances_included = var.device_assurances_policy_ids.iOS && var.device_assurances_policy_ids.Android == null ? null : var.device_assurances_policy_ids.ios == null ? [var.device_assurances_policy_ids.Android] : var.device_assurances_policy_ids.android == null ? [var.device_assurances_policy_ids.iOS] : [var.device_assurances_policy_ids.iOS, var.device_assurances_policy_ids.Android]
     },
     { # Unsupported Devices
       name        = "Unsupported Devices"
@@ -396,6 +401,17 @@ variable "admin_assignment" {
   description = "Creates the role specifically for super admin. Just enter the map for the assignment for the assignment"
   type        = map(any)
   default     = {}
+}
+
+variable "device_assurances_policy_ids" {
+  description = "Device assurance policies for Mac, iOS, Windows and Android"
+  type        = object({
+    iOS = optional(string)
+    Mac = optional(string)
+    Windows = optional(string)
+    Android = optional(string)
+
+  })
 }
 
 
