@@ -95,8 +95,8 @@ variable "auto_submit_toolbar" {
 
 variable "default_relay_state" {
   description = "Default relay state"
-  type        = string
-  default     = "https://test.com"
+  type        = string  
+  default     = null
 }
 
 variable "destination" {
@@ -296,4 +296,30 @@ variable "attribute_statements" {
     values       = optional(list(string), [])
   }))
   default = null
+
+  validation {
+    condition = var.attribute_statements == null ? true : alltrue([
+      for attr in var.attribute_statements : 
+      (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
+      (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
+    ])
+    error_message = <<EOT
+Invalid configuration:
+- User types must have non-empty "values" and no filter_value
+- Group types must have "filter_value" and no "values"
+EOT
+  }
+
+  validation {
+    condition = var.attribute_statements == null ? true : alltrue([
+      for attr in var.attribute_statements : 
+      contains(["user", "group"], attr.type) &&
+      contains(["basic", "uri reference", "unspecified"], attr.name_format)
+    ])
+    error_message = <<EOT
+Validation errors:
+- Type must be 'user' or 'group'
+- name_format must be 'basic', 'uri reference', or 'unspecified'
+EOT
+  }
 }
