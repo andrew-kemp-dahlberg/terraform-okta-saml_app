@@ -1,41 +1,3 @@
-variable "attribute_statements" {
-  description = "List of Objects containing, type (user or group), name, formation, filter_value for group attributes that is a regex, "
-  type = list(object({
-    type         = string
-    name         = string
-    name_format  = optional(string, "unspecified")
-    filter_value = optional(string, null)
-    values       = optional(list(string), [])
-  }))
-  default = null
-
-  validation {
-    condition = var.attribute_statements == null ? true : alltrue([
-      for attr in var.attribute_statements : 
-      (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
-      (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
-    ])
-    error_message = <<EOT
-Invalid configuration:
-- User types must have non-empty "values" and no filter_value
-- Group types must have "filter_value" and no "values"
-EOT
-  }
-
-  validation {
-    condition = var.attribute_statements == null ? true : alltrue([
-      for attr in var.attribute_statements : 
-      contains(["user", "group"], attr.type) &&
-      contains(["basic", "uri reference", "unspecified"], attr.name_format)
-    ])
-    error_message = <<EOT
-Validation errors:
-- Type must be 'user' or 'group'
-- name_format must be 'basic', 'uri reference', or 'unspecified'
-EOT
-  }
-}
-
 locals {
     attribute_statements = [
     for attr in var.attribute_statements : {
@@ -62,108 +24,43 @@ resource "okta_app_signon_policy" "authentication_policy" {
 
 
 resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
-  access                      = "ALLOW"
-  constraints                 = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-  custom_expression           = null
-  device_assurances_included  = null
-  device_is_managed           = null
-  device_is_registered        = null
-  factor_mode                 = "2FA"
-  groups_excluded             = []
-  groups_included             = ["00g11p7vbcqI3vXBt2p8"]
-  inactivity_period           = null
-  name                        = "Mac and Windows Devices"
-  network_connection          = "ANYWHERE"
-  network_excludes            = null
-  network_includes            = null
-  policy_id                   = okta_app_signon_policy.authentication_policy.id
-  priority                    = 1
-  re_authentication_frequency = "PT43800H"
-  risk_score                  = "ANY"
-  status                      = "ACTIVE"
-  type                        = "ASSURANCE"
-  user_types_excluded         = []
-  user_types_included         = []
-  users_excluded              = []
-  users_included              = []
-  platform_include {
-    os_expression = null
-    os_type       = "MACOS"
-    type          = "DESKTOP"
-  }
-  platform_include {
-    os_expression = null
-    os_type       = "WINDOWS"
-    type          = "DESKTOP"
-  }
-}
+  count = length(var.signon_policy_rules)
 
-resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
-  access                      = "ALLOW"
-  constraints                 = ["{\"knowledge\":{\"required\":false},\"possession\":{\"authenticationMethods\":[{\"key\":\"okta_verify\",\"method\":\"signed_nonce\"}],\"required\":false,\"hardwareProtection\":\"REQUIRED\",\"phishingResistant\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-  custom_expression           = null
-  device_assurances_included  = ["daeya6jtpsaMCFM4h2p7", "daeya6odzfBCEPM8F2p7"]
-  device_is_managed           = false
-  device_is_registered        = false
-  factor_mode                 = "2FA"
-  groups_excluded             = []
-  groups_included             = ["00g11p7vbcqI3vXBt2p8"]
-  inactivity_period           = null
-  name                        = "Android and iOS devices"
-  network_connection          = "ANYWHERE"
-  network_excludes            = null
-  network_includes            = null
-  policy_id                   = "rsto89gt30Dn9uLiy2p7"
-  priority                    = 2
-  re_authentication_frequency = "PT43800H"
-  risk_score                  = "ANY"
-  status                      = "ACTIVE"
-  type                        = "ASSURANCE"
-  user_types_excluded         = []
-  user_types_included         = []
-  users_excluded              = []
-  users_included              = []
-}
+  # Required attributes
+  name        = var.signon_policy_rules[count.index].name
+  constraints = var.signon_policy_rules[count.index].constraints
+  policy_id   = okta_app_signon_policy.authentication_policy.id
 
-resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
-  access                      = "ALLOW"
-  constraints                 = ["{\"knowledge\":{\"reauthenticateIn\":\"PT43800H\",\"types\":[\"password\"],\"required\":true},\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-  custom_expression           = null
-  device_assurances_included  = null
-  device_is_managed           = null
-  device_is_registered        = null
-  factor_mode                 = "2FA"
-  groups_excluded             = null
-  groups_included             = null
-  inactivity_period           = null
-  name                        = "Unsupported Devices"
-  network_connection          = "ANYWHERE"
-  network_excludes            = null
-  network_includes            = null
-  policy_id                   = "rsto89gt30Dn9uLiy2p7"
-  priority                    = 3
-  re_authentication_frequency = "PT43800H"
-  risk_score                  = "ANY"
-  status                      = "ACTIVE"
-  type                        = "ASSURANCE"
-  user_types_excluded         = []
-  user_types_included         = []
-  users_excluded              = []
-  users_included              = []
-  platform_include {
-    os_expression = null
-    os_type       = "CHROMEOS"
-    type          = "DESKTOP"
-  }
-  platform_include {
-    os_expression = null
-    os_type       = "OTHER"
-    type          = "DESKTOP"
-  }
-  platform_include {
-    os_expression = null
-    os_type       = "OTHER"
-    type          = "MOBILE"
+  # Dynamically set optional attributes
+  access                      = var.signon_policy_rules[count.index].access
+  custom_expression           = var.signon_policy_rules[count.index].custom_expression
+  device_assurances_included  = var.signon_policy_rules[count.index].device_assurances_included
+  device_is_managed           = var.signon_policy_rules[count.index].device_is_managed
+  device_is_registered        = var.signon_policy_rules[count.index].device_is_registered
+  factor_mode                 = var.signon_policy_rules[count.index].factor_mode
+  groups_excluded             = var.signon_policy_rules[count.index].groups_excluded
+  groups_included             = var.signon_policy_rules[count.index].groups_included
+  inactivity_period           = var.signon_policy_rules[count.index].inactivity_period
+  network_connection          = var.signon_policy_rules[count.index].network_connection
+  network_excludes            = var.signon_policy_rules[count.index].network_excludes
+  network_includes            = var.signon_policy_rules[count.index].network_includes
+  priority                    = count.index + 1
+  re_authentication_frequency = var.signon_policy_rules[count.index].re_authentication_frequency
+  risk_score                  = var.signon_policy_rules[count.index].risk_score
+  status                      = var.signon_policy_rules[count.index].status
+  type                        = var.signon_policy_rules[count.index].type
+  user_types_excluded         = var.signon_policy_rules[count.index].user_types_excluded
+  user_types_included         = var.signon_policy_rules[count.index].user_types_included
+  users_excluded              = var.signon_policy_rules[count.index].users_excluded
+  users_included              = var.signon_policy_rules[count.index].users_included
+
+  dynamic "platform_include" {
+    for_each = var.signon_policy_rules[count.index].platform_includes
+    content {
+      os_expression = platform_include.value.os_expression
+      os_type       = platform_include.value.os_type
+      type          = platform_include.value.type
+    }
   }
 }
 
