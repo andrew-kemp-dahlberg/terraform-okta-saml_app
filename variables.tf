@@ -27,7 +27,35 @@ variable "private_key" {
   sensitive   = true
 }
 
+variable "label" {
+  description = "Application label"
+  type        = string
+}
 
+variable "logo" {
+  description = "Logo URL"
+  type        = string
+}
+
+variable "sso_url" {
+  description = "SSO URL"
+  type        = string
+}
+
+variable "audience" {
+  description = "Audience URI"
+  type        = string
+}
+variable "recipient" {
+  description = "Recipient URL"
+  type        = string
+  default     = var.sso_url
+}
+variable "destination" {
+  description = "Destination URL"
+  type        = string
+  default     = var.sso_url
+}
 
 variable "accessibility_error_redirect_url" {
   description = "Custom error page URL"
@@ -65,12 +93,6 @@ variable "assertion_signed" {
   default     = true
 }
 
-variable "audience" {
-  description = "Audience URI"
-  type        = string
-  default     = "https://test.com"
-}
-
 variable "authn_context_class_ref" {
   description = "Authentication context class reference"
   type        = string
@@ -85,14 +107,8 @@ variable "auto_submit_toolbar" {
 
 variable "default_relay_state" {
   description = "Default relay state"
-  type        = string  
-  default     = null
-}
-
-variable "destination" {
-  description = "Destination URL"
   type        = string
-  default     = "https://test.com"
+  default     = null
 }
 
 variable "digest_algorithm" {
@@ -155,25 +171,13 @@ variable "key_years_valid" {
   default     = null
 }
 
-variable "label" {
-  description = "Application label"
-  type        = string
-}
-
-variable "logo" {
-  description = "Logo URL"
-  type        = string
-}
-
 variable "preconfigured_app" {
   description = "Preconfigured application ID"
   type        = string
+  default     = null
 }
 
-variable "recipient" {
-  description = "Recipient URL"
-  type        = string
-}
+
 
 variable "request_compressed" {
   description = "Request compressed"
@@ -227,11 +231,6 @@ variable "sp_issuer" {
   description = "SP issuer"
   type        = string
   default     = null
-}
-
-variable "sso_url" {
-  description = "SSO URL"
-  type        = string
 }
 
 variable "status" {
@@ -289,7 +288,7 @@ variable "attribute_statements" {
 
   validation {
     condition = var.attribute_statements == null ? true : alltrue([
-      for attr in var.attribute_statements : 
+      for attr in var.attribute_statements :
       (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
       (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
     ])
@@ -302,7 +301,7 @@ EOT
 
   validation {
     condition = var.attribute_statements == null ? true : alltrue([
-      for attr in var.attribute_statements : 
+      for attr in var.attribute_statements :
       contains(["user", "group"], attr.type) &&
       contains(["basic", "uri reference", "unspecified"], attr.name_format)
     ])
@@ -312,7 +311,7 @@ Validation errors:
 - attribute_statements name_format must be 'basic', 'uri reference', or 'unspecified'
 EOT
   }
-  
+
 }
 
 variable "signon_policy_rules" {
@@ -353,10 +352,10 @@ variable "signon_policy_rules" {
 
   default = [
     { # Mac and Windows Devices
-      name               = "Mac and Windows Devices"
-      constraints        = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      groups_included    = ["00g11p7vbcqI3vXBt2p8"]
-      platform_includes  = [
+      name            = "Mac and Windows Devices"
+      constraints     = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
+      groups_included = ["00g11p7vbcqI3vXBt2p8"]
+      platform_includes = [
         { os_type = "MACOS", type = "DESKTOP" },
         { os_type = "WINDOWS", type = "DESKTOP" }
       ]
@@ -370,8 +369,8 @@ variable "signon_policy_rules" {
       groups_included            = ["00g11p7vbcqI3vXBt2p8"]
     },
     { # Unsupported Devices
-      name              = "Unsupported Devices"
-      constraints       = ["{\"knowledge\":{\"reauthenticateIn\":\"PT43800H\",\"types\":[\"password\"],\"required\":true},\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
+      name        = "Unsupported Devices"
+      constraints = ["{\"knowledge\":{\"reauthenticateIn\":\"PT43800H\",\"types\":[\"password\"],\"required\":true},\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
       platform_includes = [
         { os_type = "CHROMEOS", type = "DESKTOP" },
         { os_type = "OTHER", type = "DESKTOP" },
@@ -381,3 +380,13 @@ variable "signon_policy_rules" {
   ]
 }
 
+variable "assignments" {
+  description = "Creates assignments based on groups that can then be assigned to users."
+  type = list(object({
+    role = string
+    profile = map
+  }))
+  default = [ {
+    
+  } ]
+}
