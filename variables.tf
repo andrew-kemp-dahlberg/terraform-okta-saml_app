@@ -183,7 +183,6 @@ variable "preconfigured_app" {
 variable "recipient" {
   description = "Recipient URL"
   type        = string
-  default     = "https://test.com"
 }
 
 variable "request_compressed" {
@@ -285,44 +284,6 @@ variable "user_name_template_type" {
   description = "Username template type"
   type        = string
   default     = "BUILT_IN"
-}
-
-variable "attribute_statements" {
-  description = "SAML attribute statements"
-  type = list(object({
-    filter_type  = string
-    filter_value = string
-    name         = string
-    namespace    = string
-    type         = string
-    values       = list(string)
-  }))
-  default = [
-    {
-      filter_type  = null
-      filter_value = null
-      name         = "firstName"
-      namespace    = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-      type         = "EXPRESSION"
-      values       = ["user.firstName"]
-    },
-    {
-      filter_type  = null
-      filter_value = null
-      name         = "lastName"
-      namespace    = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-      type         = "EXPRESSION"
-      values       = ["user.lastName"]
-    },
-    {
-      filter_type  = "REGEX"
-      filter_value = ".*"
-      name         = "group"
-      namespace    = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-      type         = "GROUP"
-      values       = []
-    }
-  ]
 }
 
 variable "attribute_statements" {
