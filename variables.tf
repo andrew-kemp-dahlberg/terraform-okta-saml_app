@@ -27,17 +27,7 @@ variable "private_key" {
   sensitive   = true
 }
 
-variable "policy_name" {
-  description = "Name of the Okta policy"
-  type        = string
-  default     = "Any two factors"
-}
 
-variable "policy_type" {
-  description = "Type of Okta policy"
-  type        = string
-  default     = "ACCESS_POLICY"
-}
 
 variable "accessibility_error_redirect_url" {
   description = "Custom error page URL"
