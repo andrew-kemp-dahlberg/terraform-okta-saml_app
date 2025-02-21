@@ -49,12 +49,12 @@ variable "audience" {
 variable "recipient" {
   description = "Recipient URL"
   type        = string
-  default     = var.sso_url
+  default     = null
 }
 variable "destination" {
   description = "Destination URL"
   type        = string
-  default     = var.sso_url
+  default     = null
 }
 
 variable "accessibility_error_redirect_url" {
@@ -314,82 +314,44 @@ EOT
 
 }
 
-variable "signon_policy_rules" {
+variable "authentication_policy_rules" {
   type = list(object({
-    # Required attributes
-    name        = string
-    constraints = list(string)
-
-    # Optional attributes with proper null defaults
-    access                      = optional(string)
+    name                        = optional(string)
+    constraints                 = optional(list(string))
+    access                      = optional(string, "ALLOW")
     custom_expression           = optional(string)
     device_assurances_included  = optional(list(string))
     device_is_managed           = optional(bool)
     device_is_registered        = optional(bool)
     factor_mode                 = optional(string, "2FA")
-    groups_excluded             = optional(list(string))
+    groups_excluded             = optional(list(string), [])
     groups_included             = optional(list(string))
     inactivity_period           = optional(string)
     network_connection          = optional(string, "ANYWHERE")
     network_excludes            = optional(list(string))
     network_includes            = optional(list(string))
     re_authentication_frequency = optional(string, "PT43800H")
-    risk_score                  = optional(string)
-    status                      = optional(string)
-    type                        = optional(string)
-    user_types_excluded         = optional(list(string))
-    user_types_included         = optional(list(string))
-    users_excluded              = optional(list(string))
-    users_included              = optional(list(string))
-
-    # Platform includes
+    risk_score                  = optional(string, "ANY")
+    status                      = optional(string, "ACTIVE")
+    type                        = optional(string, "ASSURANCE")
+    user_types_excluded         = optional(list(string), [])
+    user_types_included         = optional(list(string), [])
+    users_excluded              = optional(list(string), [])
+    users_included              = optional(list(string), [])
     platform_includes = optional(list(object({
       os_expression = optional(string)
       os_type       = string
       type          = string
     })), [])
   }))
-
-  default = [
-    { # Admin
-      name            = "Super Admin Authentication Policy Rule"
-      constraints     = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      groups_included = [okta_group.admin_group.id]
-      device_assurances_included = [var.device_assurances_policy_ids.Mac, var.device_assurance_policy_ids.Windows, var.device_assurances_policy_ids.iOS, var.device_assurances_policy_ids.Android]
-      device_is_managed          = true
-      device_is_registered       = true
-      
-    },
-    { # Mac and Windows Devices
-      name            = "Mac and Windows Devices"
-      constraints     = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      platform_includes = [
-        { os_type = "MACOS", type = "DESKTOP" },
-        { os_type = "WINDOWS", type = "DESKTOP" }
-      ]
-    },
-    { # Android and iOS devices
-      name                       = "Android and iOS devices"
-      constraints                = ["{\"knowledge\":{\"required\":false},\"possession\":{\"authenticationMethods\":[{\"key\":\"okta_verify\",\"method\":\"signed_nonce\"}],\"required\":false,\"hardwareProtection\":\"REQUIRED\",\"phishingResistant\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-      device_assurances_included = var.device_assurances_policy_ids.iOS && var.device_assurances_policy_ids.Android == null ? null : var.device_assurances_policy_ids.ios == null ? [var.device_assurances_policy_ids.Android] : var.device_assurances_policy_ids.android == null ? [var.device_assurances_policy_ids.iOS] : [var.device_assurances_policy_ids.iOS, var.device_assurances_policy_ids.Android]
-    },
-    { # Unsupported Devices
-      name        = "Unsupported Devices"
-      constraints = ["{\"knowledge\":{\"reauthenticateIn\":\"PT43800H\",\"types\":[\"password\"],\"required\":true},\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-      platform_includes = [
-        { os_type = "CHROMEOS", type = "DESKTOP" },
-        { os_type = "OTHER", type = "DESKTOP" },
-        { os_type = "OTHER", type = "MOBILE" }
-      ]
-    }
-  ]
+  default = null
 }
 
-variable "assignments" {
+variable "roles" {
   description = "Creates assignments based on groups that can then be assigned to users."
   type = list(object({
     role    = string
-    profile = map
+    profile = map(any)
   }))
   default = [{
     role    = "assignement"
@@ -397,7 +359,7 @@ variable "assignments" {
   }]
 }
 
-variable "admin_assignment" {
+variable "admin_role" {
   description = "Creates the role specifically for super admin. Just enter the map for the assignment for the assignment"
   type        = map(any)
   default     = {}
@@ -405,9 +367,9 @@ variable "admin_assignment" {
 
 variable "device_assurances_policy_ids" {
   description = "Device assurance policies for Mac, iOS, Windows and Android"
-  type        = object({
-    iOS = optional(string)
-    Mac = optional(string)
+  type = object({
+    iOS     = optional(string)
+    Mac     = optional(string)
     Windows = optional(string)
     Android = optional(string)
 
