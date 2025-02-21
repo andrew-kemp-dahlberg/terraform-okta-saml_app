@@ -1,29 +1,11 @@
-# locals {
-#   assignments = [
-#     for attr in var.attribute_statements : {
-#       name = attr.name
-#       namespace = lookup({
-#         "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-#         "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-#         "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-#       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-#       type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
-#       filter_type  = attr.type == "group" ? "REGEX" : null
-#       filter_value = attr.type == "group" ? attr.filter_value : null
-#       values       = attr.type == "user" ? attr.values : []
-#     }
-#   ]
-# }
-
-
 resource "okta_group" "assignment_groups" {
-  count = length(var.assignments)
-  name = "APP-ROLE-${upper(var.label)}-${upper(var.assignments[count.index].role)}"
+  count       = length(var.assignments)
+  name        = "APP-ROLE-${upper(var.label)}-${upper(var.assignments[count.index].role)}"
   description = "Group assigns users to ${label} with the role of ${var.assignments[count.index].role}"
 }
 
 locals {
-admin_group_description = var.admin_assignment == {} ? "Group for ${label} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${label} super admins. Privileges are automatically assigned from this group"
+  admin_group_description = var.admin_assignment == {} ? "Group for ${label} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${label} super admins. Privileges are automatically assigned from this group"
 }
 resource "okta_group" "admin_group" {
   name        = "APP-ROLE-${upper(var.label)}-SUPERADMIN"
@@ -31,7 +13,7 @@ resource "okta_group" "admin_group" {
 }
 
 resource "okta_app_signon_policy" "authentication_policy" {
-  description = "Policy for ${var.label}"
+  description = "Authentication Policy for ${var.label}"
   name        = "${var.label} Authentication Policy"
 }
 
@@ -152,5 +134,17 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 }
-
-
+locals {
+  profile = concat(var.admin_assignment, [for assignment in var.assignments.profile : assignment])
+}
+resource "okta_app_group_assignments" "main_app" {
+  app_id = okta_app_saml.saml_app.id
+  dynamic "profiles" {
+    for_each = local.profile
+    iterator = attr
+    content {
+      priority = count.index + 1
+      profile  = jsonencode(attr.profiles)
+    }
+  }
+}

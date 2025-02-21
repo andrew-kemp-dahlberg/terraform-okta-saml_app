@@ -383,19 +383,19 @@ variable "signon_policy_rules" {
 variable "assignments" {
   description = "Creates assignments based on groups that can then be assigned to users."
   type = list(object({
-    role = string
+    role    = string
     profile = map
   }))
-  default = [ {
-    role = "assignement"
+  default = [{
+    role    = "assignement"
     profile = {}
-  } ]
+  }]
 }
 
 variable "admin_assignment" {
-  description = "Creates the role specifically for. Just enter the map for the assignment for the assignment"
-  type = map
-  default = {}
+  description = "Creates the role specifically for super admin. Just enter the map for the assignment for the assignment"
+  type        = map(any)
+  default     = {}
 }
 
-  
+
