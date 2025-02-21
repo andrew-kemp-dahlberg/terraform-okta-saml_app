@@ -1,20 +1,4 @@
 locals {
-  attribute_statements = [
-    for attr in var.attribute_statements : {
-      name = attr.name
-      namespace = lookup({
-        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
-      filter_type  = attr.type == "group" ? "REGEX" : null
-      filter_value = attr.type == "group" ? attr.filter_value : null
-      values       = attr.type == "user" ? attr.values : []
-    }
-  ]
-}
-locals {
   authentication_policy_name = "${var.label} Authentication Policy"
 }
 resource "okta_app_signon_policy" "authentication_policy" {
@@ -62,6 +46,23 @@ resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
       type          = platform_include.value.type
     }
   }
+}
+
+locals {
+  attribute_statements = [
+    for attr in var.attribute_statements : {
+      name = attr.name
+      namespace = lookup({
+        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+      filter_type  = attr.type == "group" ? "REGEX" : null
+      filter_value = attr.type == "group" ? attr.filter_value : null
+      values       = attr.type == "user" ? attr.values : []
+    }
+  ]
 }
 
 resource "okta_app_saml" "saml_app" {
@@ -123,7 +124,3 @@ resource "okta_app_saml" "saml_app" {
   }
 }
 
-variable "group_assignments" {
-  type = list(map)
-  
-}
