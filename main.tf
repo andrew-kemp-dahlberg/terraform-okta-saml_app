@@ -1,9 +1,38 @@
-locals {
-  authentication_policy_name = "${var.label} Authentication Policy"
+# locals {
+#   assignments = [
+#     for attr in var.attribute_statements : {
+#       name = attr.name
+#       namespace = lookup({
+#         "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+#         "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+#         "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+#       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+#       type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+#       filter_type  = attr.type == "group" ? "REGEX" : null
+#       filter_value = attr.type == "group" ? attr.filter_value : null
+#       values       = attr.type == "user" ? attr.values : []
+#     }
+#   ]
+# }
+
+
+resource "okta_group" "assignment_groups" {
+  count = length(var.assignments)
+  name = "APP-ROLE-${upper(var.label)}-${upper(var.assignments[count.index].role)}"
+  description = "Group assigns users to ${label} with the role of ${var.assignments[count.index].role}"
 }
+
+locals {
+admin_group_description = var.admin_assignment == {} ? "Group for ${label} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${label} super admins. Privileges are automatically assigned from this group"
+}
+resource "okta_group" "admin_group" {
+  name        = "APP-ROLE-${upper(var.label)}-SUPERADMIN"
+  description = local.admin_group_description
+}
+
 resource "okta_app_signon_policy" "authentication_policy" {
   description = "Policy for ${var.label}"
-  name        = local.authentication_policy_name
+  name        = "${var.label} Authentication Policy"
 }
 
 
@@ -123,4 +152,5 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 }
+
 

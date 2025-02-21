@@ -386,12 +386,16 @@ variable "assignments" {
     role = string
     profile = map
   }))
-
+  default = [ {
+    role = "assignement"
+    profile = {}
+  } ]
 }
 
 variable "admin_assignment" {
   description = "Creates the role specifically for. Just enter the map for the assignment for the assignment"
   type = map
-  
-  
+  default = {}
 }
+
+  

@@ -13,5 +13,5 @@ provider "okta" {
   client_id      = var.client_id
   private_key_id = var.private_key_id
   private_key    = var.private_key
-  scopes         = ["okta.apps.manage", "okta.apps.read"]
+  scopes         = ["okta.apps.manage", "okta.apps.read", "okta.groups.manage", "okta.groups.read", "okta.policies.manage", "okta.policies.read", "okta.profileMappings.manage", "okta.profileMappings.read"]
 }
