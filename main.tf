@@ -1,8 +1,14 @@
 locals {
-  roles = concat({role = "Super Admin"
-  profile = var.admin_role}, var.roles)
-  profile = concat(var.admin_role != {} ? [var.admin_role] : [], [for role in var.roles : role.profile]) 
+  roles = concat(
+    var.admin_role != {} ? [{
+      role    = "Super Admin"
+      profile = var.admin_role
+    }] : [],
+    var.roles
+  )
+  profile = concat(var.admin_role, [for role in var.roles : role.profile])
 }
+
 resource "okta_group" "assignment_groups" {
   count       = length(var.roles)
   name        = "APP-ROLE-${upper(var.label)}-${upper(var.roles[count.index].role)}"
@@ -26,7 +32,7 @@ locals {
   recipient   = var.recipient == null ? var.sso_url : var.recipient
   destination = var.destination == null ? var.sso_url : var.destination
 
-  attribute_statements = [
+  attribute_statements = var.attribute_statements == null ? null : [
     for attr in var.attribute_statements : {
       name = attr.name
       namespace = lookup({
@@ -164,7 +170,7 @@ locals{
     }
   ]
 
-  authentication_policy_rules = [
+  authentication_policy_rules = var.authentication_policy_rules == null ? null : [
   for rule in var.authentication_policy_rules : {
     name = rule.name
     constraints = jsonencode(merge(
@@ -248,6 +254,7 @@ resource "okta_app_saml" "saml_app" {
   user_name_template_push_status   = var.user_name_template_push_status
   user_name_template_suffix        = var.user_name_template_suffix
   user_name_template_type          = var.user_name_template_type
+  
   dynamic "attribute_statements" {
     for_each = local.attribute_statements
     iterator = attr
