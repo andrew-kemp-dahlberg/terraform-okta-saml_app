@@ -290,7 +290,7 @@ resource "okta_app_group_assignments" "main_app" {
     content {
       id       = group_id.value
       profile  = jsonencode(var.roles[group_id.key].profile)
-      priority = index(group_id) + 1
+      priority = tonumber(group_id.key) + 1
     }
   }
 }
