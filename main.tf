@@ -6,13 +6,40 @@ locals {
     }] : [],
     var.roles
   )
+
   profile = [for role in local.roles : role.profile]
+  app_group_names = ["Not a department group"]
+  push_group_names = ["Not a department group"]
+  mailing_group_names = ["Not a department group"]
+  group_profile = [for p in local.profile : length(p) == 0 ?
+    "No profile assigned" :
+    replace(
+      jsonencode(p),
+      "/^{|}$/",
+      ""
+    )
+  ]
+  
+  group_notes = [for p in local.profile : format(
+    "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
+    var.label,
+    jsonencode(p)
+  )]
+
+  custom_attributes = [for index in range(length(local.roles)) : merge(
+    { notes = local.group_notes[index] },
+    { assignmentProfile = local.group_profile[index] },
+    local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
+    local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
+    local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
+  )]
 }
 
 resource "okta_group" "assignment_groups" {
   count       = length(local.roles)
   name        = "APP-ROLE-${upper(var.label)}-${upper(local.roles[count.index].role)}"
   description = "Group assigns users to ${var.label} with the role of ${local.roles[count.index].role}"
+  custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
 }
 
 locals {
@@ -69,7 +96,7 @@ locals {
     )
   )
 
-  default_auth_rules = [
+    default_auth_rules = [
     {
       name                        = "Super Admin Authentication Policy Rule"
       access                      = "ALLOW"
@@ -82,20 +109,20 @@ locals {
       device_assurances_included = local.admin_assurances
       constraints = [
         jsonencode({
+          "authenticator": {
+            "constraints": [{
+              "methods": [
+                {
+                  "type": "password"
+                }
+              ],
+              "types": ["password"]
+            }]
+          },
           "verificationMethod": {
             "factorMode": "2FA",
             "type": "ASSURANCE",
-            "constraints": [{
-              "knowledge": {
-                "types": ["password"],
-                "required": true
-              },
-              "possession": {
-                "deviceBound": "REQUIRED",
-                "hardwareProtection": "REQUIRED",
-                "userPresence": "REQUIRED"
-              }
-            }]
+            "reauthenticateIn": "PT43800H"
           }
         })
       ]
@@ -109,16 +136,20 @@ locals {
       device_assurances_included = local.computer_assurances
       constraints = [
         jsonencode({
+          "authenticator": {
+            "constraints": [{
+              "methods": [
+                {
+                  "type": "password"
+                }
+              ],
+              "types": ["password"]
+            }]
+          },
           "verificationMethod": {
             "factorMode": "2FA",
             "type": "ASSURANCE",
-            "constraints": [{
-              "possession": {
-                "deviceBound": "REQUIRED",
-                "hardwareProtection": "REQUIRED",
-                "userPresence": "REQUIRED"
-              }
-            }]
+            "reauthenticateIn": "PT43800H"
           }
         })
       ]
@@ -132,17 +163,20 @@ locals {
       device_assurances_included = local.mobile_assurances
       constraints = [
         jsonencode({
+          "authenticator": {
+            "constraints": [{
+              "methods": [
+                {
+                  "type": "otp"
+                }
+              ],
+              "types": ["app"]
+            }]
+          },
           "verificationMethod": {
             "factorMode": "2FA",
             "type": "ASSURANCE",
-            "constraints": [{
-              "possession": {
-                "deviceBound": "REQUIRED",
-                "hardwareProtection": "REQUIRED",
-                "phishingResistant": "REQUIRED",
-                "userPresence": "REQUIRED"
-              }
-            }]
+            "reauthenticateIn": "PT43800H"
           }
         })
       ]
@@ -169,20 +203,20 @@ locals {
       ]
       constraints = [
         jsonencode({
+          "authenticator": {
+            "constraints": [{
+              "methods": [
+                {
+                  "type": "password"
+                }
+              ],
+              "types": ["password"]
+            }]
+          },
           "verificationMethod": {
             "factorMode": "2FA",
             "type": "ASSURANCE",
-            "constraints": [{
-              "knowledge": {
-                "types": ["password"],
-                "required": true
-              },
-              "possession": {
-                "deviceBound": "REQUIRED",
-                "hardwareProtection": "REQUIRED",
-                "userPresence": "REQUIRED"
-              }
-            }]
+            "reauthenticateIn": "PT43800H"
           }
         })
       ]
