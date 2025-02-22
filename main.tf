@@ -10,9 +10,9 @@ locals {
 }
 
 resource "okta_group" "assignment_groups" {
-  count       = length(var.roles)
-  name        = "APP-ROLE-${upper(var.label)}-${upper(var.roles[count.index].role)}"
-  description = "Group assigns users to ${var.label} with the role of ${var.roles[count.index].role}"
+  count       = length(local.roles)
+  name        = "APP-ROLE-${upper(var.label)}-${upper(local.roles[count.index].role)}"
+  description = "Group assigns users to ${var.label} with the role of ${local.roles[count.index].role}"
 }
 
 locals {
@@ -68,85 +68,124 @@ locals {
       [try(var.device_assurance_policy_ids.Android, null)]
     )
   )
+
   default_auth_rules = [
     {
-      name = "Super Admin Authentication Policy Rule"
-      constraints = [jsonencode({
-        possession             = { required = true, hardwareProtection = "REQUIRED", userPresence = "REQUIRED", userVerification = "REQUIRED" }
-        groups_included        = [okta_group.assignment_groups[0].id]
-        device_assurances      = local.admin_assurances
-        device_is_managed      = true
-        device_is_registered   = true
-        access                 = "ALLOW"
-        factor_mode            = "2FA"
-        network_connection     = "ANYWHERE"
-        re_authentication_freq = "PT43800H"
-        risk_score             = "ANY"
-        status                 = "ACTIVE"
-        type                   = "ASSURANCE"
-      })]
+      name                        = "Super Admin Authentication Policy Rule"
+      access                      = "ALLOW"
+      factor_mode                 = "2FA"
+      type                        = "ASSURANCE"
+      re_authentication_frequency = "PT43800H"
+      groups_included             = [okta_group.assignment_groups[0].id]
+      device_is_managed          = true
+      device_is_registered       = true
+      device_assurances_included = local.admin_assurances
+      constraints = [
+        jsonencode({
+          "verificationMethod": {
+            "factorMode": "2FA",
+            "type": "ASSURANCE",
+            "constraints": [{
+              "knowledge": {
+                "types": ["password"],
+                "required": true
+              },
+              "possession": {
+                "deviceBound": "REQUIRED",
+                "hardwareProtection": "REQUIRED",
+                "userPresence": "REQUIRED"
+              }
+            }]
+          }
+        })
+      ]
     },
     {
-      name = "Mac and Windows Devices"
-      constraints = [jsonencode({
-        possession             = { required = true, hardwareProtection = "REQUIRED", userPresence = "REQUIRED", userVerification = "REQUIRED" }
-        device_assurances      = local.computer_assurances
-        access                 = "ALLOW"
-        factor_mode            = "2FA"
-        network_connection     = "ANYWHERE"
-        re_authentication_freq = "PT43800H"
-        risk_score             = "ANY"
-        status                 = "ACTIVE"
-        type                   = "ASSURANCE"
-      })]
+      name                        = "Mac and Windows Devices"
+      access                      = "ALLOW"
+      factor_mode                 = "2FA"
+      type                        = "ASSURANCE"
+      re_authentication_frequency = "PT43800H"
+      device_assurances_included = local.computer_assurances
+      constraints = [
+        jsonencode({
+          "verificationMethod": {
+            "factorMode": "2FA",
+            "type": "ASSURANCE",
+            "constraints": [{
+              "possession": {
+                "deviceBound": "REQUIRED",
+                "hardwareProtection": "REQUIRED",
+                "userPresence": "REQUIRED"
+              }
+            }]
+          }
+        })
+      ]
     },
     {
-      name = "Android and iOS devices"
-      constraints = [jsonencode({
-        knowledge = { required = false }
-        possession = {
-          authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }],
-          required              = false,
-          hardwareProtection    = "REQUIRED",
-          phishingResistant     = "REQUIRED",
-          userPresence          = "REQUIRED"
+      name                        = "Android and iOS devices"
+      access                      = "ALLOW"
+      factor_mode                 = "2FA"
+      type                        = "ASSURANCE"
+      re_authentication_frequency = "PT43800H"
+      device_assurances_included = local.mobile_assurances
+      constraints = [
+        jsonencode({
+          "verificationMethod": {
+            "factorMode": "2FA",
+            "type": "ASSURANCE",
+            "constraints": [{
+              "possession": {
+                "deviceBound": "REQUIRED",
+                "hardwareProtection": "REQUIRED",
+                "phishingResistant": "REQUIRED",
+                "userPresence": "REQUIRED"
+              }
+            }]
+          }
+        })
+      ]
+    },
+    {
+      name                        = "Unsupported Devices"
+      access                      = "ALLOW"
+      factor_mode                 = "2FA"
+      type                        = "ASSURANCE"
+      re_authentication_frequency = "PT43800H"
+      platform_include = [
+        {
+          os_type = "CHROMEOS"
+          type    = "DESKTOP"
+        },
+        {
+          os_type = "OTHER"
+          type    = "DESKTOP"
+        },
+        {
+          os_type = "OTHER"
+          type    = "MOBILE"
         }
-        device_assurances      = local.mobile_assurances
-        access                 = "ALLOW"
-        factor_mode            = "2FA"
-        network_connection     = "ANYWHERE"
-        re_authentication_freq = "PT43800H"
-        risk_score             = "ANY"
-        status                 = "ACTIVE"
-        type                   = "ASSURANCE"
-      })]
-    },
-    {
-      name = "Unsupported Devices"
-      constraints = [jsonencode({
-        knowledge = {
-          reauthenticateIn = "PT43800H",
-          types            = ["password"],
-          required         = true
-        },
-        possession = {
-          required           = true,
-          hardwareProtection = "REQUIRED",
-          userPresence       = "REQUIRED"
-        },
-        platform_includes = [
-          { os_type = "CHROMEOS", type = "DESKTOP" },
-          { os_type = "OTHER", type = "DESKTOP" },
-          { os_type = "OTHER", type = "MOBILE" }
-        ],
-        access                 = "ALLOW",
-        factor_mode            = "2FA",
-        network_connection     = "ANYWHERE",
-        re_authentication_freq = "PT43800H",
-        risk_score             = "ANY",
-        status                 = "ACTIVE",
-        type                   = "ASSURANCE"
-      })]
+      ]
+      constraints = [
+        jsonencode({
+          "verificationMethod": {
+            "factorMode": "2FA",
+            "type": "ASSURANCE",
+            "constraints": [{
+              "knowledge": {
+                "types": ["password"],
+                "required": true
+              },
+              "possession": {
+                "deviceBound": "REQUIRED",
+                "hardwareProtection": "REQUIRED",
+                "userPresence": "REQUIRED"
+              }
+            }]
+          }
+        })
+      ]
     }
   ]
 
@@ -185,10 +224,28 @@ locals {
 
 
 resource "okta_app_signon_policy_rule" "auth_policy_rules" {
-  count       = length(local.auth_rules)
-  policy_id   = okta_app_signon_policy.authentication_policy.id
-  name        = local.auth_rules[count.index].name
-  constraints = local.auth_rules[count.index].constraints
+  count                       = length(local.auth_rules)
+  policy_id                   = okta_app_signon_policy.authentication_policy.id
+  name                        = local.auth_rules[count.index].name
+  access                      = local.auth_rules[count.index].access
+  factor_mode                 = local.auth_rules[count.index].factor_mode
+  type                        = local.auth_rules[count.index].type
+  re_authentication_frequency = local.auth_rules[count.index].re_authentication_frequency
+  constraints                 = local.auth_rules[count.index].constraints
+  priority                    = count.index + 1
+  
+  dynamic "platform_include" {
+    for_each = try(local.auth_rules[count.index].platform_include, [])
+    content {
+      os_type = platform_include.value.os_type
+      type    = platform_include.value.type
+    }
+  }
+
+  device_is_managed     = try(local.auth_rules[count.index].device_is_managed, null)
+  device_is_registered  = try(local.auth_rules[count.index].device_is_registered, null)
+  groups_included       = try(local.auth_rules[count.index].groups_included, null)
+  device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, null)
 }
 
 locals {
@@ -289,7 +346,7 @@ resource "okta_app_group_assignments" "main_app" {
     iterator = group_id
     content {
       id       = group_id.value
-      profile  = jsonencode(var.roles[group_id.key].profile)
+      profile  = jsonencode(local.roles[group_id.key].profile)
       priority = tonumber(group_id.key) + 1
     }
   }

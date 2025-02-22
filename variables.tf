@@ -37,6 +37,7 @@ variable "logo" {
   type        = string
 }
 
+
 variable "sso_url" {
   description = "SSO URL"
   type        = string
@@ -316,24 +317,25 @@ EOT
 
 variable "authentication_policy_rules" {
   type = list(object({
-    name                        = optional(string)
+    name                        = string
+    priority                    = number
     constraints                 = optional(list(string))
-    access                      = optional(string, "ALLOW")
+    access                      = optional(string)
     custom_expression           = optional(string)
     device_assurances_included  = optional(list(string))
     device_is_managed           = optional(bool)
     device_is_registered        = optional(bool)
-    factor_mode                 = optional(string, "2FA")
-    groups_excluded             = optional(list(string), [])
+    factor_mode                 = optional(string)
+    groups_excluded             = optional(list(string))
     groups_included             = optional(list(string))
     inactivity_period           = optional(string)
-    network_connection          = optional(string, "ANYWHERE")
+    network_connection          = optional(string)
     network_excludes            = optional(list(string))
     network_includes            = optional(list(string))
     re_authentication_frequency = optional(string, "PT43800H")
-    risk_score                  = optional(string, "ANY")
+    risk_score                  = optional(string)
     status                      = optional(string, "ACTIVE")
-    type                        = optional(string, "ASSURANCE")
+    type                        = optional(string)
     user_types_excluded         = optional(list(string), [])
     user_types_included         = optional(list(string), [])
     users_excluded              = optional(list(string), [])
