@@ -318,7 +318,6 @@ EOT
 variable "authentication_policy_rules" {
   type = list(object({
     name                        = string
-    priority                    = number
     constraints                 = optional(list(string))
     access                      = optional(string)
     custom_expression           = optional(string)
@@ -376,6 +375,19 @@ variable "device_assurance_policy_ids" {
     Android = optional(string)
   })
   default = {}
+}
+
+variable "SSO Enforced" {
+  description = "Boolean on if SSO is enforced or not"
+  type        = bool
+}
+
+variable "provisioning_automation" {
+  description = "Method by which user provisioning is done"
+  type = string
+  validation {
+    var.description == "SCIM", "ADP"]
+  }
 }
 
 
