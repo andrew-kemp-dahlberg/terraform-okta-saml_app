@@ -1,21 +1,48 @@
+locals {
+  roles = concat({role = "Super Admin"
+  profile = var.admin_role}, var.roles)
+  profile = concat(var.admin_role != {} ? [var.admin_role] : [], [for role in var.roles : role.profile]) 
+}
 resource "okta_group" "assignment_groups" {
   count       = length(var.roles)
   name        = "APP-ROLE-${upper(var.label)}-${upper(var.roles[count.index].role)}"
-  description = "Group assigns users to ${label} with the role of ${var.roles[count.index].role}"
+  description = "Group assigns users to ${var.label} with the role of ${var.roles[count.index].role}" 
 }
 
 locals {
-  admin_group_description = var.admin_role == {} ? "Group for ${label} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${label} super admins. Privileges are automatically assigned from this group"
+  admin_group_description = var.admin_role == {} ? "Group for ${var.label} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.label} super admins. Privileges are automatically assigned from this group" # Fixed var.label
 }
-resource "okta_group" "admin_group" {
-  name        = "APP-ROLE-${upper(var.label)}-SUPERADMIN"
-  description = local.admin_group_description
-}
-
-
-
 
 locals {
+  policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.label}. It is the default policy set by Terraform." : "Authentication Policy for ${var.label}. It is a custom policy set through the terraform app module"
+}
+
+resource "okta_app_signon_policy" "authentication_policy" {
+  description = local.policy_description
+  name        = "${var.label} Authentication Policy"
+}
+
+locals {
+  recipient   = var.recipient == null ? var.sso_url : var.recipient
+  destination = var.destination == null ? var.sso_url : var.destination
+
+  attribute_statements = [
+    for attr in var.attribute_statements : {
+      name = attr.name
+      namespace = lookup({
+        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+      filter_type  = attr.type == "group" ? "REGEX" : null
+      filter_value = attr.type == "group" ? attr.filter_value : null
+      values       = attr.type == "user" ? attr.values : []
+    }
+  ]
+}
+
+locals{  
   computer_assurances = compact(
     concat(
       [try(var.device_assurance_policy_ids.Mac, null)],
@@ -56,102 +83,138 @@ locals {
     )
   )
 
-  auth_rules = var.authentication_policy_rules == null ? [
+  default_auth_rules = [
     {
-      name                       = "Super Admin Authentication Policy Rule"
-      constraints                = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      groups_included            = [okta_group.admin_group.id]
-      device_assurance_included = local.admin_assurances
+      name                        = "Super Admin Authentication Policy Rule"
+      constraints                 = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
+      groups_included            = [okta_group.assignment_groups[0].id]
+      device_assurances_included = local.admin_assurances   
       device_is_managed          = true
       device_is_registered       = true
+      access                     = "ALLOW"
+      factor_mode                = "2FA"
+      groups_excluded            = []
+      network_connection         = "ANYWHERE"
+      re_authentication_frequency = "PT43800H"
+      risk_score                 = "ANY"
+      status                     = "ACTIVE"
+      type                       = "ASSURANCE"
+      user_types_excluded        = []
+      user_types_included        = []
+      users_excluded             = []
+      users_included             = []
+      platform_includes          = []
+      custom_expression          = null
+      inactivity_period         = null
+      network_excludes          = null
+      network_includes          = null
     },
     {
-      name                       = "Mac and Windows Devices"
-      constraints                = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      device_assurance_included = local.computer_assurances
+      name                        = "Mac and Windows Devices"
+      constraints                 = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
+      device_assurances_included = local.computer_assurances
+      access                     = "ALLOW"
+      factor_mode                = "2FA"
+      groups_excluded            = []
+      groups_included            = null
+      network_connection         = "ANYWHERE"
+      re_authentication_frequency = "PT43800H"
+      risk_score                 = "ANY"
+      status                     = "ACTIVE"
+      type                       = "ASSURANCE"
+      user_types_excluded        = []
+      user_types_included        = []
+      users_excluded             = []
+      users_included             = []
+      platform_includes          = []
+      custom_expression          = null
+      device_is_managed          = null
+      device_is_registered       = null
+      inactivity_period         = null
+      network_excludes          = null
+      network_includes          = null
     },
     {
-      name                       = "Android and iOS devices"
-      constraints                = ["{\"knowledge\":{\"required\":false},\"possession\":{\"authenticationMethods\":[{\"key\":\"okta_verify\",\"method\":\"signed_nonce\"}],\"required\":false,\"hardwareProtection\":\"REQUIRED\",\"phishingResistant\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-      device_assurance_included = local.mobile_assurances
+      name                        = "Android and iOS devices"
+      constraints                 = ["{\"knowledge\":{\"required\":false},\"possession\":{\"authenticationMethods\":[{\"key\":\"okta_verify\",\"method\":\"signed_nonce\"}],\"required\":false,\"hardwareProtection\":\"REQUIRED\",\"phishingResistant\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
+      device_assurances_included = local.mobile_assurances
+      access                     = "ALLOW"
+      factor_mode                = "2FA"
+      groups_excluded            = []
+      groups_included            = null
+      network_connection         = "ANYWHERE"
+      re_authentication_frequency = "PT43800H"
+      risk_score                 = "ANY"
+      status                     = "ACTIVE"
+      type                       = "ASSURANCE"
+      user_types_excluded        = []
+      user_types_included        = []
+      users_excluded             = []
+      users_included             = []
+      platform_includes          = []
+      custom_expression          = null
+      device_is_managed          = null
+      device_is_registered       = null
+      inactivity_period         = null
+      network_excludes          = null
+      network_includes          = null
     },
     {
-      name        = "Unsupported Devices"
-      constraints = ["{\"knowledge\":{\"reauthenticateIn\":\"PT43800H\",\"types\":[\"password\"],\"required\":true},\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-      platform_includes = [
-        { os_type = "CHROMEOS", type = "DESKTOP" },
-        { os_type = "OTHER", type = "DESKTOP" },
-        { os_type = "OTHER", type = "MOBILE" }
+      name                        = "Unsupported Devices"
+      constraints                 = ["{\"knowledge\":{\"reauthenticateIn\":\"PT43800H\",\"types\":[\"password\"],\"required\":true},\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
+      access                     = "ALLOW"
+      factor_mode                = "2FA"
+      groups_excluded            = []
+      groups_included            = null
+      network_connection         = "ANYWHERE"
+      re_authentication_frequency = "PT43800H"
+      risk_score                 = "ANY"
+      status                     = "ACTIVE"
+      type                       = "ASSURANCE"
+      user_types_excluded        = []
+      user_types_included        = []
+      users_excluded             = []
+      users_included             = []
+      platform_includes          = [
+        { os_type = "CHROMEOS", type = "DESKTOP", os_expression = null },
+        { os_type = "OTHER", type = "DESKTOP", os_expression = null },
+        { os_type = "OTHER", type = "MOBILE", os_expression = null }
       ]
-    }
-  ] : var.authentication_policy_rules
-
-  policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.label}. It is the default policy set by Terraform." : "Authentication Policy for ${var.label}. It is a custom policy set through the terraform app module"
-}
-
-resource "okta_app_signon_policy" "authentication_policy" {
-  description = local.policy_description
-  name        = "${var.label} Authentication Policy"
-}
-
-resource "okta_app_signon_policy_rule" "authentication_policy_rule" {
-  count = length(local.auth_rules)
-
-  name                        = local.auth_rules[count.index].name
-  constraints                 = local.auth_rules[count.index].constraints
-  policy_id                   = okta_app_signon_policy.authentication_policy.id
-  access                      = local.auth_rules[count.index].access
-  custom_expression           = local.auth_rules[count.index].custom_expression
-  device_assurances_included  = local.auth_rules[count.index].device_assurances_included
-  device_is_managed           = local.auth_rules[count.index].device_is_managed
-  device_is_registered        = local.auth_rules[count.index].device_is_registered
-  factor_mode                 = local.auth_rules[count.index].factor_mode
-  groups_excluded             = local.auth_rules[count.index].groups_excluded
-  groups_included             = local.auth_rules[count.index].groups_included
-  inactivity_period           = local.auth_rules[count.index].inactivity_period
-  network_connection          = local.auth_rules[count.index].network_connection
-  network_excludes            = local.auth_rules[count.index].network_excludes
-  network_includes            = local.auth_rules[count.index].network_includes
-  priority                    = count.index + 1
-  re_authentication_frequency = local.auth_rules[count.index].re_authentication_frequency
-  risk_score                  = local.auth_rules[count.index].risk_score
-  status                      = local.auth_rules[count.index].status
-  type                        = local.auth_rules[count.index].type
-  user_types_excluded         = local.auth_rules[count.index].user_types_excluded
-  user_types_included         = local.auth_rules[count.index].user_types_included
-  users_excluded              = local.auth_rules[count.index].users_excluded
-  users_included              = local.auth_rules[count.index].users_included
-
-  dynamic "platform_include" {
-    for_each = local.auth_rules[count.index].platform_includes
-    content {
-      os_expression = platform_include.value.os_expression
-      os_type       = platform_include.value.os_type
-      type          = platform_include.value.type
-    }
-  }
-}
-
-locals {
-  recipient   = var.recipient == null ? var.sso_url : var.recipient
-  destination = var.destination == null ? var.sso_url : var.destination
-
-  attribute_statements = [
-    for attr in var.attribute_statements : {
-      name = attr.name
-      namespace = lookup({
-        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
-      filter_type  = attr.type == "group" ? "REGEX" : null
-      filter_value = attr.type == "group" ? attr.filter_value : null
-      values       = attr.type == "user" ? attr.values : []
+      custom_expression          = null
+      device_assurances_included = null
+      device_is_managed          = null
+      device_is_registered       = null
+      inactivity_period         = null
+      network_excludes          = null
+      network_includes          = null
     }
   ]
+
+  auth_rules = var.authentication_policy_rules != null ? var.authentication_policy_rules : local.default_auth_rules
 }
 
+
+resource "okta_app_signon_policy_rule" "auth_policy_rules" {
+  count = length(auth_rules)
+  policy_id = okta_app_signon_policy.authentication_policy.id
+  name      = local.auth_rules[count.index].name
+  constraints = [
+    jsonencode(
+      {
+        knowledge = {
+          reauthenticateIn = "PT2H"
+          types = [
+            "password",
+          ]
+        }
+        possession = {
+          deviceBound        = "REQUIRED"
+          hardwareProtection = "REQUIRED"
+        }
+      }
+    )
+  ]
+}
 resource "okta_app_saml" "saml_app" {
   accessibility_error_redirect_url = var.accessibility_error_redirect_url
   accessibility_login_redirect_url = var.accessibility_login_redirect_url
@@ -210,17 +273,17 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 }
-locals {
-  profile = concat(var.admin_role, [for assignment in var.roles.profile : assignment])
-}
+
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
-  dynamic "profiles" {
-    for_each = local.profile
-    iterator = attr
+
+  dynamic "group" {
+    for_each = okta_group.assignment_groups[*].id
+    iterator = group_id
     content {
-      priority = count.index + 1
-      profile  = jsonencode(attr.profiles)
+      id = group_id.value
+      profile  = jsonencode(var.roles[group_id.key].profile)
+      priority = index(group_id) + 1
     }
   }
 }
