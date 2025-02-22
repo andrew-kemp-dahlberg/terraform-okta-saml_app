@@ -7,9 +7,9 @@ locals {
     var.roles
   )
 
-  profile = [for role in local.roles : role.profile]
-  app_group_names = ["Not a department group"]
-  push_group_names = ["Not a department group"]
+  profile             = [for role in local.roles : role.profile]
+  app_group_names     = ["Not a department group"]
+  push_group_names    = ["Not a department group"]
   mailing_group_names = ["Not a department group"]
   group_profile = [for p in local.profile : length(p) == 0 ?
     "No profile assigned" :
@@ -19,7 +19,7 @@ locals {
       ""
     )
   ]
-  
+
   group_notes = [for p in local.profile : format(
     "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
     var.label,
@@ -36,9 +36,9 @@ locals {
 }
 
 resource "okta_group" "assignment_groups" {
-  count       = length(local.roles)
-  name        = "APP-ROLE-${upper(var.label)}-${upper(local.roles[count.index].role)}"
-  description = "Group assigns users to ${var.label} with the role of ${local.roles[count.index].role}"
+  count                     = length(local.roles)
+  name                      = "APP-ROLE-${upper(var.label)}-${upper(local.roles[count.index].role)}"
+  description               = "Group assigns users to ${var.label} with the role of ${local.roles[count.index].role}"
   custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
 }
 
@@ -96,7 +96,7 @@ locals {
     )
   )
 
-    default_auth_rules = [
+  default_auth_rules = [
     {
       name                        = "Super Admin Authentication Policy Rule"
       access                      = "ALLOW"
@@ -104,25 +104,25 @@ locals {
       type                        = "ASSURANCE"
       re_authentication_frequency = "PT43800H"
       groups_included             = [okta_group.assignment_groups[0].id]
-      device_is_managed          = true
-      device_is_registered       = true
-      device_assurances_included = local.admin_assurances
+      device_is_managed           = true
+      device_is_registered        = true
+      device_assurances_included  = local.admin_assurances
       constraints = [
         jsonencode({
-          "authenticator": {
-            "constraints": [{
-              "methods": [
+          "authenticator" : {
+            "constraints" : [{
+              "methods" : [
                 {
-                  "type": "password"
+                  "type" : "password"
                 }
               ],
-              "types": ["password"]
+              "types" : ["password"]
             }]
           },
-          "verificationMethod": {
-            "factorMode": "2FA",
-            "type": "ASSURANCE",
-            "reauthenticateIn": "PT43800H"
+          "verificationMethod" : {
+            "factorMode" : "2FA",
+            "type" : "ASSURANCE",
+            "reauthenticateIn" : "PT43800H"
           }
         })
       ]
@@ -133,23 +133,23 @@ locals {
       factor_mode                 = "2FA"
       type                        = "ASSURANCE"
       re_authentication_frequency = "PT43800H"
-      device_assurances_included = local.computer_assurances
+      device_assurances_included  = local.computer_assurances
       constraints = [
         jsonencode({
-          "authenticator": {
-            "constraints": [{
-              "methods": [
+          "authenticator" : {
+            "constraints" : [{
+              "methods" : [
                 {
-                  "type": "password"
+                  "type" : "password"
                 }
               ],
-              "types": ["password"]
+              "types" : ["password"]
             }]
           },
-          "verificationMethod": {
-            "factorMode": "2FA",
-            "type": "ASSURANCE",
-            "reauthenticateIn": "PT43800H"
+          "verificationMethod" : {
+            "factorMode" : "2FA",
+            "type" : "ASSURANCE",
+            "reauthenticateIn" : "PT43800H"
           }
         })
       ]
@@ -160,23 +160,23 @@ locals {
       factor_mode                 = "2FA"
       type                        = "ASSURANCE"
       re_authentication_frequency = "PT43800H"
-      device_assurances_included = local.mobile_assurances
+      device_assurances_included  = local.mobile_assurances
       constraints = [
         jsonencode({
-          "authenticator": {
-            "constraints": [{
-              "methods": [
+          "authenticator" : {
+            "constraints" : [{
+              "methods" : [
                 {
-                  "type": "otp"
+                  "type" : "otp"
                 }
               ],
-              "types": ["app"]
+              "types" : ["app"]
             }]
           },
-          "verificationMethod": {
-            "factorMode": "2FA",
-            "type": "ASSURANCE",
-            "reauthenticateIn": "PT43800H"
+          "verificationMethod" : {
+            "factorMode" : "2FA",
+            "type" : "ASSURANCE",
+            "reauthenticateIn" : "PT43800H"
           }
         })
       ]
@@ -203,20 +203,20 @@ locals {
       ]
       constraints = [
         jsonencode({
-          "authenticator": {
-            "constraints": [{
-              "methods": [
+          "authenticator" : {
+            "constraints" : [{
+              "methods" : [
                 {
-                  "type": "password"
+                  "type" : "password"
                 }
               ],
-              "types": ["password"]
+              "types" : ["password"]
             }]
           },
-          "verificationMethod": {
-            "factorMode": "2FA",
-            "type": "ASSURANCE",
-            "reauthenticateIn": "PT43800H"
+          "verificationMethod" : {
+            "factorMode" : "2FA",
+            "type" : "ASSURANCE",
+            "reauthenticateIn" : "PT43800H"
           }
         })
       ]
@@ -267,7 +267,7 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
   re_authentication_frequency = local.auth_rules[count.index].re_authentication_frequency
   constraints                 = local.auth_rules[count.index].constraints
   priority                    = count.index + 1
-  
+
   dynamic "platform_include" {
     for_each = try(local.auth_rules[count.index].platform_include, [])
     content {
@@ -276,9 +276,9 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
     }
   }
 
-  device_is_managed     = try(local.auth_rules[count.index].device_is_managed, null)
-  device_is_registered  = try(local.auth_rules[count.index].device_is_registered, null)
-  groups_included       = try(local.auth_rules[count.index].groups_included, null)
+  device_is_managed          = try(local.auth_rules[count.index].device_is_managed, null)
+  device_is_registered       = try(local.auth_rules[count.index].device_is_registered, null)
+  groups_included            = try(local.auth_rules[count.index].groups_included, null)
   device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, null)
 }
 
@@ -312,6 +312,7 @@ locals {
       } : key => value if value != null
     }
   ]
+
 }
 
 resource "okta_app_saml" "saml_app" {
@@ -319,7 +320,7 @@ resource "okta_app_saml" "saml_app" {
   accessibility_login_redirect_url = var.accessibility_login_redirect_url
   accessibility_self_service       = var.accessibility_self_service
   acs_endpoints                    = var.acs_endpoints
-  admin_note                       = var.admin_note
+  admin_note                       = jsonencode(var.admin_note)
   assertion_signed                 = var.assertion_signed
   audience                         = var.audience
   authentication_policy            = okta_app_signon_policy.authentication_policy.id

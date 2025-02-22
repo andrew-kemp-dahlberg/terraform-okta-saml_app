@@ -83,10 +83,66 @@ variable "acs_endpoints" {
 }
 
 variable "admin_note" {
-  description = "Administrator notes"
-  type        = string
-  default     = null
+  type = object({
+    saas_mgmt_name = string
+    sso_enforced   = bool
+    lifecycle_automations = object({
+      provisioning = object({
+        method           = string
+        automation_links = list(string)
+      })
+      user_updates = object({
+        method           = string
+        automation_links = list(string)
+      })
+      deprovisioning = object({
+        method           = string
+        automation_links = list(string)
+      })
+    })
+    service_accounts       = list(string)
+    app_owner              = string
+    last_access_audit_date = string
+  })
+
+  validation {
+    condition = alltrue([
+      for _, automation in var.admin_note.lifecycle_automations :
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], automation.method)
+    ])
+    error_message = "Lifecycle automation methods must be one of: SCIM, ADP, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+  }
+
+  validation {
+    condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
+    error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
+  }
+
+  validation {
+    condition = alltrue([
+      for _, automation in var.admin_note.lifecycle_automations :
+      alltrue([
+        for link in automation.automation_links :
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
+      ])
+    ])
+    error_message = "Automation links must be valid URLs starting with http://, https://, or www."
+  }
+
+  validation {
+    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
+    error_message = "App owner must be a valid email address."
+  }
+
+  validation {
+    condition = alltrue([
+      for account in var.admin_note.service_accounts :
+      can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+    ])
+    error_message = "Service accounts must be valid email addresses."
+  }
 }
+
 
 variable "assertion_signed" {
   description = "Whether SAML assertions are signed"
@@ -375,19 +431,6 @@ variable "device_assurance_policy_ids" {
     Android = optional(string)
   })
   default = {}
-}
-
-variable "SSO Enforced" {
-  description = "Boolean on if SSO is enforced or not"
-  type        = bool
-}
-
-variable "provisioning_automation" {
-  description = "Method by which user provisioning is done"
-  type = string
-  validation {
-    var.description == "SCIM", "ADP"]
-  }
 }
 
 
