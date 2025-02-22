@@ -13,40 +13,47 @@ resource "okta_group" "admin_group" {
 }
 
 
-resource "okta_app_signon_policy" "authentication_policy" {
-  description = "Authentication Policy for ${var.label}"
-  name        = "${var.label} Authentication Policy"
-}
+
 
 locals {
   computer_assurances = compact(
-    try(var.device_assurances_policy_ids.Mac, null),
-    try(var.device_assurance_policy_ids.Windows, null)
-    ) == null ? null : compact(
-    try(var.device_assurances_policy_ids.Mac, null),
-    try(var.device_assurances_policy_ids.Windows, null)
+    concat(
+      [try(var.device_assurance_policy_ids.Mac, null)],
+      [try(var.device_assurance_policy_ids.Windows, null)]
+    )
+  ) == [] ? null : compact(
+    concat(
+      [try(var.device_assurance_policy_ids.Mac, null)],
+      [try(var.device_assurance_policy_ids.Windows, null)]
+    )
   )
 
   mobile_assurances = compact(
-    try(var.device_assurances_policy_ids.iOS, null),
-    try(var.device_assurance_policy_ids.Android, null)
-    ) == null ? null : compact(
-    try(var.device_assurances_policy_ids.iOS, null),
-    try(var.device_assurances_policy_ids.Android, null)
+    concat(
+      [try(var.device_assurance_policy_ids.iOS, null)],
+      [try(var.device_assurance_policy_ids.Android, null)]
+    )
+  ) == [] ? null : compact(
+    concat(
+      [try(var.device_assurance_policy_ids.iOS, null)],
+      [try(var.device_assurance_policy_ids.Android, null)]
+    )
   )
 
   admin_assurances = compact(
-
-    try(var.device_assurances_policy_ids.Mac, null),
-    try(var.device_assurance_policy_ids.Windows, null),
-    try(var.device_assurances_policy_ids.iOS, null),
-    try(var.device_assurances_policy_ids.Android, null)
-    ) == null ? null : compact(
-
-    try(var.device_assurances_policy_ids.Mac, null),
-    try(var.device_assurance_policy_ids.Windows, null),
-    try(var.device_assurances_policy_ids.iOS, null),
-    try(var.device_assurances_policy_ids.Android, null)
+    concat(
+      [try(var.device_assurance_policy_ids.Mac, null)],
+      [try(var.device_assurance_policy_ids.Windows, null)],
+      [try(var.device_assurance_policy_ids.iOS, null)],
+      [try(var.device_assurance_policy_ids.Android, null)]
+    )
+  ) == [] ? null : compact(
+    concat(
+      [try(var.device_assurance_policy_ids.Mac, null)],
+      [try(var.device_assurance_policy_ids.Windows, null)],
+      [try(var.device_assurance_policy_ids.iOS, null)],
+      [try(var.device_assurance_policy_ids.Android, null)]
+    )
   )
 
   auth_rules = var.authentication_policy_rules == null ? [
@@ -54,19 +61,19 @@ locals {
       name                       = "Super Admin Authentication Policy Rule"
       constraints                = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
       groups_included            = [okta_group.admin_group.id]
-      device_assurances_included = local.admin_assurances
+      device_assurance_included = local.admin_assurances
       device_is_managed          = true
       device_is_registered       = true
     },
     {
       name                       = "Mac and Windows Devices"
       constraints                = ["{\"possession\":{\"required\":true,\"hardwareProtection\":\"REQUIRED\",\"userPresence\":\"REQUIRED\",\"userVerification\":\"REQUIRED\"}}"]
-      device_assurances_included = local.computer_assurances
+      device_assurance_included = local.computer_assurances
     },
     {
       name                       = "Android and iOS devices"
       constraints                = ["{\"knowledge\":{\"required\":false},\"possession\":{\"authenticationMethods\":[{\"key\":\"okta_verify\",\"method\":\"signed_nonce\"}],\"required\":false,\"hardwareProtection\":\"REQUIRED\",\"phishingResistant\":\"REQUIRED\",\"userPresence\":\"REQUIRED\"}}"]
-      device_assurances_included = local.mobile_assurances
+      device_assurance_included = local.mobile_assurances
     },
     {
       name        = "Unsupported Devices"
@@ -79,6 +86,12 @@ locals {
     }
   ] : var.authentication_policy_rules
 
+  policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.label}. It is the default policy set by Terraform." : "Authentication Policy for ${var.label}. It is a custom policy set through the terraform app module"
+}
+
+resource "okta_app_signon_policy" "authentication_policy" {
+  description = local.policy_description
+  name        = "${var.label} Authentication Policy"
 }
 
 resource "okta_app_signon_policy_rule" "authentication_policy_rule" {

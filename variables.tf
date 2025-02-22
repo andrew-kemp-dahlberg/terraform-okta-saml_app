@@ -365,15 +365,16 @@ variable "admin_role" {
   default     = {}
 }
 
-variable "device_assurances_policy_ids" {
+variable "device_assurance_policy_ids" {
   description = "Device assurance policies for Mac, iOS, Windows and Android"
   type = object({
-    iOS     = optional(string)
     Mac     = optional(string)
     Windows = optional(string)
+    iOS     = optional(string)
     Android = optional(string)
-
   })
+  default = {}
 }
+
 
 
