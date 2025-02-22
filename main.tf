@@ -12,7 +12,7 @@ locals {
 resource "okta_group" "assignment_groups" {
   count       = length(var.roles)
   name        = "APP-ROLE-${upper(var.label)}-${upper(var.roles[count.index].role)}"
-  description = "Group assigns users to ${var.label} with the role of ${var.roles[count.index].role}" 
+  description = "Group assigns users to ${var.label} with the role of ${var.roles[count.index].role}"
 }
 
 locals {
@@ -29,32 +29,12 @@ resource "okta_app_signon_policy" "authentication_policy" {
 }
 
 locals {
-  recipient   = var.recipient == null ? var.sso_url : var.recipient
-  destination = var.destination == null ? var.sso_url : var.destination
-
-  attribute_statements = var.attribute_statements == null ? null : [
-    for attr in var.attribute_statements : {
-      name = attr.name
-      namespace = lookup({
-        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
-      filter_type  = attr.type == "group" ? "REGEX" : null
-      filter_value = attr.type == "group" ? attr.filter_value : null
-      values       = attr.type == "user" ? attr.values : []
-    }
-  ]
-}
-
-locals{  
   computer_assurances = compact(
     concat(
       [try(var.device_assurance_policy_ids.Mac, null)],
       [try(var.device_assurance_policy_ids.Windows, null)]
     )
-  ) == [] ? null : compact(
+    ) == [] ? null : compact(
     concat(
       [try(var.device_assurance_policy_ids.Mac, null)],
       [try(var.device_assurance_policy_ids.Windows, null)]
@@ -66,7 +46,7 @@ locals{
       [try(var.device_assurance_policy_ids.iOS, null)],
       [try(var.device_assurance_policy_ids.Android, null)]
     )
-  ) == [] ? null : compact(
+    ) == [] ? null : compact(
     concat(
       [try(var.device_assurance_policy_ids.iOS, null)],
       [try(var.device_assurance_policy_ids.Android, null)]
@@ -80,7 +60,7 @@ locals{
       [try(var.device_assurance_policy_ids.iOS, null)],
       [try(var.device_assurance_policy_ids.Android, null)]
     )
-  ) == [] ? null : compact(
+    ) == [] ? null : compact(
     concat(
       [try(var.device_assurance_policy_ids.Mac, null)],
       [try(var.device_assurance_policy_ids.Windows, null)],
@@ -123,13 +103,13 @@ locals{
     {
       name = "Android and iOS devices"
       constraints = [jsonencode({
-        knowledge              = { required = false }
-        possession             = { 
+        knowledge = { required = false }
+        possession = {
           authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }],
-          required = false,
-          hardwareProtection = "REQUIRED",
-          phishingResistant = "REQUIRED",
-          userPresence = "REQUIRED"
+          required              = false,
+          hardwareProtection    = "REQUIRED",
+          phishingResistant     = "REQUIRED",
+          userPresence          = "REQUIRED"
         }
         device_assurances      = local.mobile_assurances
         access                 = "ALLOW"
@@ -144,15 +124,15 @@ locals{
     {
       name = "Unsupported Devices"
       constraints = [jsonencode({
-        knowledge  = {
+        knowledge = {
           reauthenticateIn = "PT43800H",
-          types = ["password"],
-          required = true
+          types            = ["password"],
+          required         = true
         },
         possession = {
-          required = true,
+          required           = true,
           hardwareProtection = "REQUIRED",
-          userPresence = "REQUIRED"
+          userPresence       = "REQUIRED"
         },
         platform_includes = [
           { os_type = "CHROMEOS", type = "DESKTOP" },
@@ -171,33 +151,33 @@ locals{
   ]
 
   authentication_policy_rules = var.authentication_policy_rules == null ? null : [
-  for rule in var.authentication_policy_rules : {
-    name = rule.name
-    constraints = jsonencode(merge(
-      rule.access != null ? { access = rule.access } : {},
-      rule.custom_expression != null ? { custom_expression = rule.custom_expression } : {},
-      rule.device_assurances_included != null ? { device_assurances_included = rule.device_assurances_included } : {},
-      rule.device_is_managed != null ? { device_is_managed = rule.device_is_managed } : {},
-      rule.device_is_registered != null ? { device_is_registered = rule.device_is_registered } : {},
-      rule.factor_mode != null ? { factor_mode = rule.factor_mode } : {},
-      rule.groups_excluded != null ? { groups_excluded = rule.groups_excluded } : {},
-      rule.groups_included != null ? { groups_included = rule.groups_included } : {},
-      rule.inactivity_period != null ? { inactivity_period = rule.inactivity_period } : {},
-      rule.network_connection != null ? { network_connection = rule.network_connection } : {},
-      rule.network_excludes != null ? { network_excludes = rule.network_excludes } : {},
-      rule.network_includes != null ? { network_includes = rule.network_includes } : {},
-      rule.re_authentication_frequency != null ? { re_authentication_frequency = rule.re_authentication_frequency } : {},
-      rule.risk_score != null ? { risk_score = rule.risk_score } : {},
-      rule.status != null ? { status = rule.status } : {},
-      rule.type != null ? { type = rule.type } : {},
-      rule.user_types_excluded != null ? { user_types_excluded = rule.user_types_excluded } : {},
-      rule.user_types_included != null ? { user_types_included = rule.user_types_included } : {},
-      rule.users_excluded != null ? { users_excluded = rule.users_excluded } : {},
-      rule.users_included != null ? { users_included = rule.users_included } : {},
-      rule.platform_includes != null ? { platform_includes = rule.platform_includes } : {},
-      rule.constraints != null ? { constraints = rule.constraints } : {}
-    ))
-  }
+    for rule in var.authentication_policy_rules : {
+      name = rule.name
+      constraints = jsonencode(merge(
+        rule.access != null ? { access = rule.access } : {},
+        rule.custom_expression != null ? { custom_expression = rule.custom_expression } : {},
+        rule.device_assurances_included != null ? { device_assurances_included = rule.device_assurances_included } : {},
+        rule.device_is_managed != null ? { device_is_managed = rule.device_is_managed } : {},
+        rule.device_is_registered != null ? { device_is_registered = rule.device_is_registered } : {},
+        rule.factor_mode != null ? { factor_mode = rule.factor_mode } : {},
+        rule.groups_excluded != null ? { groups_excluded = rule.groups_excluded } : {},
+        rule.groups_included != null ? { groups_included = rule.groups_included } : {},
+        rule.inactivity_period != null ? { inactivity_period = rule.inactivity_period } : {},
+        rule.network_connection != null ? { network_connection = rule.network_connection } : {},
+        rule.network_excludes != null ? { network_excludes = rule.network_excludes } : {},
+        rule.network_includes != null ? { network_includes = rule.network_includes } : {},
+        rule.re_authentication_frequency != null ? { re_authentication_frequency = rule.re_authentication_frequency } : {},
+        rule.risk_score != null ? { risk_score = rule.risk_score } : {},
+        rule.status != null ? { status = rule.status } : {},
+        rule.type != null ? { type = rule.type } : {},
+        rule.user_types_excluded != null ? { user_types_excluded = rule.user_types_excluded } : {},
+        rule.user_types_included != null ? { user_types_included = rule.user_types_included } : {},
+        rule.users_excluded != null ? { users_excluded = rule.users_excluded } : {},
+        rule.users_included != null ? { users_included = rule.users_included } : {},
+        rule.platform_includes != null ? { platform_includes = rule.platform_includes } : {},
+        rule.constraints != null ? { constraints = rule.constraints } : {}
+      ))
+    }
   ]
 
   auth_rules = local.authentication_policy_rules == null ? local.default_auth_rules : local.authentication_policy_rules
@@ -205,11 +185,44 @@ locals{
 
 
 resource "okta_app_signon_policy_rule" "auth_policy_rules" {
-  count = length(local.auth_rules)
-  policy_id = okta_app_signon_policy.authentication_policy.id
-  name      = local.auth_rules[count.index].name
+  count       = length(local.auth_rules)
+  policy_id   = okta_app_signon_policy.authentication_policy.id
+  name        = local.auth_rules[count.index].name
   constraints = local.auth_rules[count.index].constraints
 }
+
+locals {
+  recipient   = var.recipient == null ? var.sso_url : var.recipient
+  destination = var.destination == null ? var.sso_url : var.destination
+
+  attribute_statements = var.attribute_statements == null ? null : [
+    for attr in var.attribute_statements : {
+      name = attr.name
+      namespace = lookup({
+        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+      filter_type  = attr.type == "group" ? "REGEX" : null
+      filter_value = attr.type == "group" ? attr.filter_value : null
+      values       = attr.type == "user" ? attr.values : []
+    }
+  ]
+  attribute_statements_clean = [
+    for attr in coalesce(var.attribute_statements, []) : {
+      for key, value in {
+        name         = attr.name
+        type         = attr.type
+        values       = attr.values
+        filter_type  = attr.filter_type
+        filter_value = attr.filter_value
+        namespace    = attr.namespace
+      } : key => value if value != null
+    }
+  ]
+}
+
 resource "okta_app_saml" "saml_app" {
   accessibility_error_redirect_url = var.accessibility_error_redirect_url
   accessibility_login_redirect_url = var.accessibility_login_redirect_url
@@ -254,24 +267,19 @@ resource "okta_app_saml" "saml_app" {
   user_name_template_push_status   = var.user_name_template_push_status
   user_name_template_suffix        = var.user_name_template_suffix
   user_name_template_type          = var.user_name_template_type
-  
-  dynamic "attribute_statements" {
-    for_each = local.attribute_statements
-    iterator = attr
 
+  dynamic "attribute_statements" {
+    for_each = local.attribute_statements_clean
     content {
-      name         = attr.value.name
-      type         = attr.value.type
-      values       = attr.value.values
-      filter_type  = attr.value.filter_type
-      filter_value = attr.value.filter_value
-      namespace    = attr.value.namespace
+      name         = attribute_statements.value.name
+      type         = attribute_statements.value.type
+      values       = attribute_statements.value.values
+      filter_type  = attribute_statements.value.filter_type
+      filter_value = attribute_statements.value.filter_value
+      namespace    = attribute_statements.value.namespace
     }
   }
 }
-
-# count       = length(var.roles)
-#   name        = "APP-ROLE-${upper(var.label)}-${upper(var.roles[count.index].role)}"
 
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
@@ -280,7 +288,7 @@ resource "okta_app_group_assignments" "main_app" {
     for_each = okta_group.assignment_groups[*].id
     iterator = group_id
     content {
-      id = group_id.value
+      id       = group_id.value
       profile  = jsonencode(var.roles[group_id.key].profile)
       priority = index(group_id) + 1
     }
