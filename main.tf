@@ -6,7 +6,7 @@ locals {
     }] : [],
     var.roles
   )
-  profile = concat(var.admin_role, [for role in var.roles : role.profile])
+  profile = [for role in local.roles : role.profile]
 }
 
 resource "okta_group" "assignment_groups" {
@@ -270,6 +270,9 @@ resource "okta_app_saml" "saml_app" {
   }
 }
 
+# count       = length(var.roles)
+#   name        = "APP-ROLE-${upper(var.label)}-${upper(var.roles[count.index].role)}"
+
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
 
@@ -283,3 +286,4 @@ resource "okta_app_group_assignments" "main_app" {
     }
   }
 }
+
