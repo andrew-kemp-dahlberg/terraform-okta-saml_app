@@ -113,11 +113,9 @@ locals {
           "authenticator" : {
             "constraints" : [{
               "methods" : [
-                {
-                  "type" : "password"
-                }
+                { "type" : "app", "subtype" : "okta_verify" }
               ],
-              "types" : ["password"]
+              "types" : ["app"]
             }]
           },
           "verificationMethod" : {
@@ -140,11 +138,12 @@ locals {
           "authenticator" : {
             "constraints" : [{
               "methods" : [
-                {
-                  "type" : "password"
-                }
+                { "type" : "password" },
+                { "type" : "securityKey", "subtype" : "webauthn" },
+                { "type" : "app", "subtype" : "okta_verify" },
+                { "type" : "push" }
               ],
-              "types" : ["password"]
+              "types" : ["password", "app", "securityKey"]
             }]
           },
           "verificationMethod" : {
@@ -167,9 +166,7 @@ locals {
           "authenticator" : {
             "constraints" : [{
               "methods" : [
-                {
-                  "type" : "otp"
-                }
+                { "type" : "app", "subtype" : "okta_verify" }
               ],
               "types" : ["app"]
             }]
@@ -182,6 +179,7 @@ locals {
         })
       ]
     },
+
     {
       name                        = "Unsupported Devices"
       access                      = "ALLOW"
@@ -202,16 +200,14 @@ locals {
           type    = "MOBILE"
         }
       ]
-      constraints = [
+           constraints = [
         jsonencode({
           "authenticator" : {
             "constraints" : [{
               "methods" : [
-                {
-                  "type" : "password"
-                }
+                { "type" : "app", "subtype" : "okta_verify" }
               ],
-              "types" : ["password"]
+              "types" : ["app"]
             }]
           },
           "verificationMethod" : {
@@ -219,44 +215,65 @@ locals {
             "type" : "ASSURANCE",
             "reauthenticateIn" : "PT43800H"
           }
-        })
+  })] }]
+
+  authentication_policy_rules = var.authentication_policy_rules == null ? null : [
+    for rule in var.authentication_policy_rules : {
+      name                        = rule.name
+      access                      = rule.access
+      factor_mode                 = rule.factor_mode
+      type                        = rule.type
+      re_authentication_frequency = rule.re_authentication_frequency
+      device_assurances_included  = rule.device_assurances_included
+      device_is_managed           = rule.device_is_managed
+      device_is_registered        = rule.device_is_registered
+      groups_excluded             = rule.groups_excluded
+      groups_included             = rule.groups_included
+      inactivity_period           = rule.inactivity_period
+      network_connection          = rule.network_connection
+      network_excludes            = rule.network_excludes
+      network_includes            = rule.network_includes
+      risk_score                  = rule.risk_score
+      status                      = rule.status
+      user_types_excluded         = rule.user_types_excluded
+      user_types_included         = rule.user_types_included
+      users_excluded              = rule.users_excluded
+      users_included              = rule.users_included
+      platform_includes           = rule.platform_includes
+      constraints = [
+        jsonencode(merge(
+          rule.access != null ? { access = rule.access } : {},
+          rule.custom_expression != null ? { custom_expression = rule.custom_expression } : {},
+          rule.device_assurances_included != null ? { device_assurances_included = rule.device_assurances_included } : {},
+          rule.device_is_managed != null ? { device_is_managed = rule.device_is_managed } : {},
+          rule.device_is_registered != null ? { device_is_registered = rule.device_is_registered } : {},
+          rule.factor_mode != null ? { factor_mode = rule.factor_mode } : {},
+          rule.groups_excluded != null ? { groups_excluded = rule.groups_excluded } : {},
+          rule.groups_included != null ? { groups_included = rule.groups_included } : {},
+          rule.inactivity_period != null ? { inactivity_period = rule.inactivity_period } : {},
+          rule.network_connection != null ? { network_connection = rule.network_connection } : {},
+          rule.network_excludes != null ? { network_excludes = rule.network_excludes } : {},
+          rule.network_includes != null ? { network_includes = rule.network_includes } : {},
+          rule.re_authentication_frequency != null ? { re_authentication_frequency = rule.re_authentication_frequency } : {},
+          rule.risk_score != null ? { risk_score = rule.risk_score } : {},
+          rule.status != null ? { status = rule.status } : {},
+          rule.type != null ? { type = rule.type } : {},
+          rule.user_types_excluded != null ? { user_types_excluded = rule.user_types_excluded } : {},
+          rule.user_types_included != null ? { user_types_included = rule.user_types_included } : {},
+          rule.users_excluded != null ? { users_excluded = rule.users_excluded } : {},
+          rule.users_included != null ? { users_included = rule.users_included } : {},
+          rule.platform_includes != null ? { platform_includes = rule.platform_includes } : {},
+          rule.constraints != null ? { constraints = rule.constraints } : {}
+        ))
       ]
     }
   ]
 
-  authentication_policy_rules = var.authentication_policy_rules == null ? null : [
-    for rule in var.authentication_policy_rules : {
-      name = rule.name
-      constraints = jsonencode(merge(
-        rule.access != null ? { access = rule.access } : {},
-        rule.custom_expression != null ? { custom_expression = rule.custom_expression } : {},
-        rule.device_assurances_included != null ? { device_assurances_included = rule.device_assurances_included } : {},
-        rule.device_is_managed != null ? { device_is_managed = rule.device_is_managed } : {},
-        rule.device_is_registered != null ? { device_is_registered = rule.device_is_registered } : {},
-        rule.factor_mode != null ? { factor_mode = rule.factor_mode } : {},
-        rule.groups_excluded != null ? { groups_excluded = rule.groups_excluded } : {},
-        rule.groups_included != null ? { groups_included = rule.groups_included } : {},
-        rule.inactivity_period != null ? { inactivity_period = rule.inactivity_period } : {},
-        rule.network_connection != null ? { network_connection = rule.network_connection } : {},
-        rule.network_excludes != null ? { network_excludes = rule.network_excludes } : {},
-        rule.network_includes != null ? { network_includes = rule.network_includes } : {},
-        rule.re_authentication_frequency != null ? { re_authentication_frequency = rule.re_authentication_frequency } : {},
-        rule.risk_score != null ? { risk_score = rule.risk_score } : {},
-        rule.status != null ? { status = rule.status } : {},
-        rule.type != null ? { type = rule.type } : {},
-        rule.user_types_excluded != null ? { user_types_excluded = rule.user_types_excluded } : {},
-        rule.user_types_included != null ? { user_types_included = rule.user_types_included } : {},
-        rule.users_excluded != null ? { users_excluded = rule.users_excluded } : {},
-        rule.users_included != null ? { users_included = rule.users_included } : {},
-        rule.platform_includes != null ? { platform_includes = rule.platform_includes } : {},
-        rule.constraints != null ? { constraints = rule.constraints } : {}
-      ))
-    }
-  ]
+
 
   auth_rules = local.authentication_policy_rules == null ? local.default_auth_rules : local.authentication_policy_rules
-}
 
+}
 
 resource "okta_app_signon_policy_rule" "auth_policy_rules" {
   count                       = length(local.auth_rules)

@@ -84,18 +84,18 @@ variable "acs_endpoints" {
 
 variable "admin_note" {
   type = object({
-    saas_mgmt_name = string
-    sso_enforced   = bool
+    saas_mgmt_name         = string
+    sso_enforced           = bool
     lifecycle_automations = object({
-      provisioning = object({
+      provisioning    = object({
         type = string
         link = string
       })
-      user_updates = object({
+      user_updates    = object({
         type = string
         link = string
       })
-      deprovisioning = object({
+      deprovisioning  = object({
         type = string
         link = string
       })
@@ -104,17 +104,17 @@ variable "admin_note" {
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
-    notes                  = string
+    additional_notes       = string
   })
 
   validation {
     condition = alltrue([
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle_automations.provisioning.type),
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle_automations.user_updates.type),
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle_automations.deprovisioning.type)
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
+              var.admin_note.lifecycle_automations.provisioning.type),
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
+              var.admin_note.lifecycle_automations.user_updates.type),
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
+              var.admin_note.lifecycle_automations.deprovisioning.type)
     ])
     error_message = "Lifecycle automation methods must be one of: SCIM, ADP, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
   }
@@ -136,7 +136,7 @@ variable "admin_note" {
   validation {
     condition = alltrue([
       for link in var.admin_note.automation_links :
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
     ])
     error_message = "Automation links must be valid URLs starting with http://, https://, or www."
   }
@@ -149,7 +149,7 @@ variable "admin_note" {
   validation {
     condition = alltrue([
       for account in var.admin_note.service_accounts :
-      can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+        can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
     ])
     error_message = "Service accounts must be valid email addresses."
   }
