@@ -53,6 +53,7 @@ locals {
 resource "okta_app_signon_policy" "authentication_policy" {
   description = local.policy_description
   name        = "${var.label} Authentication Policy"
+  catch_all   = false
 }
 
 locals {
@@ -315,7 +316,7 @@ locals {
 
   admin_note = {
     name = var.admin_note.saas_mgmt_name
-    sso = var.admin_note.sso_enforced
+    sso  = var.admin_note.sso_enforced
     auto = distinct([
       var.admin_note.lifecycle_automations.provisioning.type,
       var.admin_note.lifecycle_automations.user_updates.type,
@@ -323,7 +324,7 @@ locals {
     ])
     owner = var.admin_note.app_owner
     audit = var.admin_note.last_access_audit_date
-}
+  }
 }
 
 resource "okta_app_saml" "saml_app" {
