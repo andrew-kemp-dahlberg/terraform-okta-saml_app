@@ -313,6 +313,17 @@ locals {
     }
   ]
 
+  admin_note = {
+    name = var.admin_note.saas_mgmt_name
+    sso = var.admin_note.sso_enforced
+    auto = distinct([
+      var.admin_note.lifecycle_automations.provisioning.type,
+      var.admin_note.lifecycle_automations.user_updates.type,
+      var.admin_note.lifecycle_automations.deprovisioning.type
+    ])
+    owner = var.admin_note.app_owner
+    audit = var.admin_note.last_access_audit_date
+}
 }
 
 resource "okta_app_saml" "saml_app" {
@@ -320,7 +331,7 @@ resource "okta_app_saml" "saml_app" {
   accessibility_login_redirect_url = var.accessibility_login_redirect_url
   accessibility_self_service       = var.accessibility_self_service
   acs_endpoints                    = var.acs_endpoints
-  admin_note                       = jsonencode(var.admin_note)
+  admin_note                       = jsonencode(local.admin_note)
   assertion_signed                 = var.assertion_signed
   audience                         = var.audience
   authentication_policy            = okta_app_signon_policy.authentication_policy.id

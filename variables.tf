@@ -84,22 +84,23 @@ variable "acs_endpoints" {
 
 variable "admin_note" {
   type = object({
-    saas_mgmt_name = string
-    sso_enforced   = bool
+    saas_mgmt_name         = string
+    sso_enforced           = bool
     lifecycle_automations = object({
-      provisioning = object({
-        method           = string
-        automation_links = list(string)
+      provisioning    = object({
+        type = string
+        link = string
       })
-      user_updates = object({
-        method           = string
-        automation_links = list(string)
+      user_updates    = object({
+        type = string
+        link = string
       })
-      deprovisioning = object({
-        method           = string
-        automation_links = list(string)
+      deprovisioning  = object({
+        type = string
+        link = string
       })
     })
+    automation_links       = list(string)
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
@@ -107,10 +108,23 @@ variable "admin_note" {
 
   validation {
     condition = alltrue([
-      for _, automation in var.admin_note.lifecycle_automations :
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], automation.method)
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
+              var.admin_note.lifecycle_automations.provisioning.type),
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
+              var.admin_note.lifecycle_automations.user_updates.type),
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
+              var.admin_note.lifecycle_automations.deprovisioning.type)
     ])
     error_message = "Lifecycle automation methods must be one of: SCIM, ADP, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+  }
+
+  validation {
+    condition = alltrue([
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) || var.admin_note.lifecycle_automations.provisioning.link == "",
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) || var.admin_note.lifecycle_automations.user_updates.link == "",
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) || var.admin_note.lifecycle_automations.deprovisioning.link == ""
+    ])
+    error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty."
   }
 
   validation {
@@ -120,11 +134,8 @@ variable "admin_note" {
 
   validation {
     condition = alltrue([
-      for _, automation in var.admin_note.lifecycle_automations :
-      alltrue([
-        for link in automation.automation_links :
+      for link in var.admin_note.automation_links :
         can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
-      ])
     ])
     error_message = "Automation links must be valid URLs starting with http://, https://, or www."
   }
@@ -137,12 +148,11 @@ variable "admin_note" {
   validation {
     condition = alltrue([
       for account in var.admin_note.service_accounts :
-      can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+        can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
     ])
     error_message = "Service accounts must be valid email addresses."
   }
 }
-
 
 variable "assertion_signed" {
   description = "Whether SAML assertions are signed"
