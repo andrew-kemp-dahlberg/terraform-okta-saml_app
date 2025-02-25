@@ -11,6 +11,7 @@
 
 # Crash logs
 crash.log
+*.log
 
 # Ignore override files (local configurations)
 *.tfvars
