@@ -383,9 +383,17 @@ EOT
 }
 
 variable "authentication_policy_rules" {
+   description = <<-EOT
+  List of authentication policy rule configurations. Rules should include:
+  - name: (Required) Unique rule name
+  - access: Defaults to "ALLOW"
+  - factor_mode: Defaults to "2FA"
+  - Type-specific configurations (constraints, platform_includes, etc.)
+  - Network restrictions (network_includes/excludes)
+  - Device requirements (managed/registered status)
+  EOT
   type = list(object({
     name = string
-
     access                      = optional(string, "ALLOW")
     factor_mode                 = optional(string, "2FA")
     type                        = optional(string, "ASSURANCE")
@@ -401,32 +409,19 @@ variable "authentication_policy_rules" {
     device_is_managed          = optional(bool)
     device_is_registered       = optional(bool)
     device_assurances_included = optional(list(string), [])
-    
-
     groups_included     = optional(list(string), [])
     groups_excluded     = optional(list(string), [])
     users_included      = optional(list(string), [])
     users_excluded      = optional(list(string), [])
     user_types_included = optional(list(string), [])
     user_types_excluded = optional(list(string), [])
-
     constraints = optional(list(string), [])
     platform_include = optional(list(object({
       os_type = optional(string, "OTHER")
       type    = optional(string, "DESKTOP")
-    })), [])
+    })), )
   }))
-  
   default     = null
-  description = <<-EOT
-  List of authentication policy rule configurations. Rules should include:
-  - name: (Required) Unique rule name
-  - access: Defaults to "ALLOW"
-  - factor_mode: Defaults to "2FA"
-  - Type-specific configurations (constraints, platform_includes, etc.)
-  - Network restrictions (network_includes/excludes)
-  - Device requirements (managed/registered status)
-  EOT
 }
 
 variable "roles" {
