@@ -104,6 +104,7 @@ variable "admin_note" {
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
+    notes                  = string
   })
 
   validation {
