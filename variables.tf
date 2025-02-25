@@ -384,35 +384,49 @@ EOT
 
 variable "authentication_policy_rules" {
   type = list(object({
-    name                        = string
-    constraints                 = optional(list(string))
-    access                      = optional(string)
-    custom_expression           = optional(string)
-    device_assurances_included  = optional(list(string))
-    device_is_managed           = optional(bool)
-    device_is_registered        = optional(bool)
-    factor_mode                 = optional(string)
-    groups_excluded             = optional(list(string))
-    groups_included             = optional(list(string))
-    inactivity_period           = optional(string)
-    network_connection          = optional(string)
-    network_excludes            = optional(list(string))
-    network_includes            = optional(list(string))
-    re_authentication_frequency = optional(string, "PT43800H")
-    risk_score                  = optional(string)
+    name = string
+
+    access                      = optional(string, "ALLOW")
+    factor_mode                 = optional(string, "2FA")
+    type                        = optional(string, "ASSURANCE")
     status                      = optional(string, "ACTIVE")
-    type                        = optional(string)
-    user_types_excluded         = optional(list(string), [])
-    user_types_included         = optional(list(string), [])
-    users_excluded              = optional(list(string), [])
-    users_included              = optional(list(string), [])
-    platform_includes = optional(list(object({
-      os_expression = optional(string)
-      os_type       = string
-      type          = string
+    re_authentication_frequency = optional(string, "PT0S")
+    priority                    = optional(number)
+    custom_expression          = optional(string)
+    network_includes           = optional(list(string))
+    network_excludes           = optional(list(string))
+    risk_score                 = optional(string, "")
+    inactivity_period          = optional(string, "")
+    network_connection         = optional(string, "ANYWHERE")
+    device_is_managed          = optional(bool)
+    device_is_registered       = optional(bool)
+    device_assurances_included = optional(list(string), [])
+    
+
+    groups_included     = optional(list(string), [])
+    groups_excluded     = optional(list(string), [])
+    users_included      = optional(list(string), [])
+    users_excluded      = optional(list(string), [])
+    user_types_included = optional(list(string), [])
+    user_types_excluded = optional(list(string), [])
+
+    constraints = optional(list(string), [])
+    platform_include = optional(list(object({
+      os_type = optional(string, "OTHER")
+      type    = optional(string, "DESKTOP")
     })), [])
   }))
-  default = null
+  
+  default     = null
+  description = <<-EOT
+  List of authentication policy rule configurations. Rules should include:
+  - name: (Required) Unique rule name
+  - access: Defaults to "ALLOW"
+  - factor_mode: Defaults to "2FA"
+  - Type-specific configurations (constraints, platform_includes, etc.)
+  - Network restrictions (network_includes/excludes)
+  - Device requirements (managed/registered status)
+  EOT
 }
 
 variable "roles" {
@@ -443,6 +457,7 @@ variable "device_assurance_policy_ids" {
   })
   default = {}
 }
+
 
 
 

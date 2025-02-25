@@ -57,31 +57,7 @@ resource "okta_app_signon_policy" "authentication_policy" {
 }
 
 locals {
-  computer_assurances = compact(
-    concat(
-      [try(var.device_assurance_policy_ids.Mac, null)],
-      [try(var.device_assurance_policy_ids.Windows, null)]
-    )
-    ) == [] ? null : compact(
-    concat(
-      [try(var.device_assurance_policy_ids.Mac, null)],
-      [try(var.device_assurance_policy_ids.Windows, null)]
-    )
-  )
-
-  mobile_assurances = compact(
-    concat(
-      [try(var.device_assurance_policy_ids.iOS, null)],
-      [try(var.device_assurance_policy_ids.Android, null)]
-    )
-    ) == [] ? null : compact(
-    concat(
-      [try(var.device_assurance_policy_ids.iOS, null)],
-      [try(var.device_assurance_policy_ids.Android, null)]
-    )
-  )
-
-  admin_assurances = compact(
+  device_assurances = compact(
     concat(
       [try(var.device_assurance_policy_ids.Mac, null)],
       [try(var.device_assurance_policy_ids.Windows, null)],
@@ -99,87 +75,77 @@ locals {
 
   default_auth_rules = [
     {
-      name                        = "Super Admin Authentication Policy Rule"
-      access                      = "ALLOW"
-      factor_mode                 = "2FA"
-      type                        = "ASSURANCE"
-      re_authentication_frequency = "PT43800H"
-      groups_included             = [okta_group.assignment_groups[0].id]
-      device_is_managed           = true
-      device_is_registered        = true
-      device_assurances_included  = local.admin_assurances
-      constraints = [
-        jsonencode({
-          "authenticator" : {
-            "constraints" : [{
-              "methods" : [
-                { "type" : "app", "subtype" : "okta_verify" }
-              ],
-              "types" : ["app"]
-            }]
-          },
-          "verificationMethod" : {
-            "factorMode" : "2FA",
-            "type" : "ASSURANCE",
-            "reauthenticateIn" : "PT43800H"
+        status                      = "ACTIVE"
+        type                        = "ASSURANCE"
+        access                      = "ALLOW"
+        custom_expression           = null
+        device_assurances_included  = local.device_assurances
+        device_is_managed           = true
+        device_is_registered        = true
+        factor_mode                 = "2FA"
+        groups_excluded             = []
+        groups_included             = [okta_group.assignment_groups[0].id]
+        inactivity_period           = "PT1H"
+        name                        = "Super Admin Authentication Policy Rule"
+        network_connection          = "ANYWHERE"
+        network_excludes            = null
+        network_includes            = null
+        priority                    = 1
+        re_authentication_frequency = "PT0S"
+        risk_score                  = ""
+        user_types_excluded         = []
+        user_types_included         = []
+        users_excluded              = []
+        users_included              = []
+        constraints                 =  [jsonencode({
+          knowledge = {
+            required = true
           }
-        })
-      ]
-    },
-    {
-      name                        = "Mac and Windows Devices"
-      access                      = "ALLOW"
-      factor_mode                 = "2FA"
-      type                        = "ASSURANCE"
-      re_authentication_frequency = "PT43800H"
-      device_assurances_included  = local.computer_assurances
-      constraints = [
-        jsonencode({
-          "authenticator" : {
-            "constraints" : [{
-              "methods" : [
-                { "type" : "password" },
-                { "type" : "securityKey", "subtype" : "webauthn" },
-                { "type" : "app", "subtype" : "okta_verify" },
-                { "type" : "push" }
-              ],
-              "types" : ["password", "app", "securityKey"]
-            }]
-          },
-          "verificationMethod" : {
-            "factorMode" : "2FA",
-            "type" : "ASSURANCE",
-            "reauthenticateIn" : "PT43800H"
+          possession = {
+            authenticationMethods = [
+              {
+                key   = "okta_verify"
+                method = "signed_nonce"
+              }
+            ]
+            required           = true
+            hardwareProtection = "REQUIRED"
+            phishingResistant  = "REQUIRED"
           }
-        })
-      ]
-    },
-    {
-      name                        = "Android and iOS devices"
-      access                      = "ALLOW"
-      factor_mode                 = "2FA"
-      type                        = "ASSURANCE"
-      re_authentication_frequency = "PT43800H"
-      device_assurances_included  = local.mobile_assurances
-      constraints = [
-        jsonencode({
-          "authenticator" : {
-            "constraints" : [{
-              "methods" : [
-                { "type" : "app", "subtype" : "okta_verify" }
-              ],
-              "types" : ["app"]
-            }]
-          },
-          "verificationMethod" : {
-            "factorMode" : "2FA",
-            "type" : "ASSURANCE",
-            "reauthenticateIn" : "PT43800H"
-          }
-        })
-      ]
-    },
+})]},
 
+  {  name                     = "Supported Devices"
+  status                      = "ACTIVE"
+  type                        = "ASSURANCE"
+  access                      = "ALLOW"
+  custom_expression           = null
+  device_assurances_included  = local.device_assurances
+  device_is_managed           = false
+  device_is_registered        = false
+  factor_mode                 = "2FA"
+  groups_excluded             = [okta_group.assignment_groups[0].id]
+  groups_included             = []
+  inactivity_period           = "PT43800H"
+  network_connection          = "ANYWHERE"
+  network_excludes            = null
+  network_includes            = null
+  priority                    = 1
+  re_authentication_frequency = "PT0S"
+  risk_score                  = ""
+  user_types_excluded         = []
+  user_types_included         = []
+  users_excluded              = []
+  users_included              = []
+  constraints                 =  [jsonencode({
+  "knowledge": {
+    "reauthenticateIn": "PT43800H",
+    "types": ["password"],
+    "required": true
+  },
+  "possession": {
+    "required": true,
+    "hardwareProtection": "REQUIRED"
+  }})]},
     {
       name                        = "Unsupported Devices"
       access                      = "ALLOW"
@@ -200,91 +166,47 @@ locals {
           type    = "MOBILE"
         }
       ]
-           constraints = [
-        jsonencode({
-          "authenticator" : {
-            "constraints" : [{
-              "methods" : [
-                { "type" : "app", "subtype" : "okta_verify" }
-              ],
-              "types" : ["app"]
-            }]
-          },
-          "verificationMethod" : {
-            "factorMode" : "2FA",
-            "type" : "ASSURANCE",
-            "reauthenticateIn" : "PT43800H"
-          }
-  })] }]
-
-  authentication_policy_rules = var.authentication_policy_rules == null ? null : [
-    for rule in var.authentication_policy_rules : {
-      name                        = rule.name
-      access                      = rule.access
-      factor_mode                 = rule.factor_mode
-      type                        = rule.type
-      re_authentication_frequency = rule.re_authentication_frequency
-      device_assurances_included  = rule.device_assurances_included
-      device_is_managed           = rule.device_is_managed
-      device_is_registered        = rule.device_is_registered
-      groups_excluded             = rule.groups_excluded
-      groups_included             = rule.groups_included
-      inactivity_period           = rule.inactivity_period
-      network_connection          = rule.network_connection
-      network_excludes            = rule.network_excludes
-      network_includes            = rule.network_includes
-      risk_score                  = rule.risk_score
-      status                      = rule.status
-      user_types_excluded         = rule.user_types_excluded
-      user_types_included         = rule.user_types_included
-      users_excluded              = rule.users_excluded
-      users_included              = rule.users_included
-      platform_includes           = rule.platform_includes
-      constraints = [
-        jsonencode(merge(
-          rule.access != null ? { access = rule.access } : {},
-          rule.custom_expression != null ? { custom_expression = rule.custom_expression } : {},
-          rule.device_assurances_included != null ? { device_assurances_included = rule.device_assurances_included } : {},
-          rule.device_is_managed != null ? { device_is_managed = rule.device_is_managed } : {},
-          rule.device_is_registered != null ? { device_is_registered = rule.device_is_registered } : {},
-          rule.factor_mode != null ? { factor_mode = rule.factor_mode } : {},
-          rule.groups_excluded != null ? { groups_excluded = rule.groups_excluded } : {},
-          rule.groups_included != null ? { groups_included = rule.groups_included } : {},
-          rule.inactivity_period != null ? { inactivity_period = rule.inactivity_period } : {},
-          rule.network_connection != null ? { network_connection = rule.network_connection } : {},
-          rule.network_excludes != null ? { network_excludes = rule.network_excludes } : {},
-          rule.network_includes != null ? { network_includes = rule.network_includes } : {},
-          rule.re_authentication_frequency != null ? { re_authentication_frequency = rule.re_authentication_frequency } : {},
-          rule.risk_score != null ? { risk_score = rule.risk_score } : {},
-          rule.status != null ? { status = rule.status } : {},
-          rule.type != null ? { type = rule.type } : {},
-          rule.user_types_excluded != null ? { user_types_excluded = rule.user_types_excluded } : {},
-          rule.user_types_included != null ? { user_types_included = rule.user_types_included } : {},
-          rule.users_excluded != null ? { users_excluded = rule.users_excluded } : {},
-          rule.users_included != null ? { users_included = rule.users_included } : {},
-          rule.platform_includes != null ? { platform_includes = rule.platform_includes } : {},
-          rule.constraints != null ? { constraints = rule.constraints } : {}
-        ))
-      ]
-    }
-  ]
-
-
-
-  auth_rules = local.authentication_policy_rules == null ? local.default_auth_rules : local.authentication_policy_rules
-
+           constraints = [jsonencode({
+  "knowledge": {
+    "reauthenticateIn": "PT43800H",
+    "types": ["password"],
+    "required": true
+  },
+  "possession": {
+    "required": true,
+    "hardwareProtection": "REQUIRED"
+    }})]}]
+    
+ auth_rules = var.authentication_policy_rules == null ? tolist(local.default_auth_rules) : var.authentication_policy_rules
 }
 
 resource "okta_app_signon_policy_rule" "auth_policy_rules" {
   count                       = length(local.auth_rules)
   policy_id                   = okta_app_signon_policy.authentication_policy.id
   name                        = local.auth_rules[count.index].name
-  access                      = local.auth_rules[count.index].access
-  factor_mode                 = local.auth_rules[count.index].factor_mode
-  type                        = local.auth_rules[count.index].type
-  re_authentication_frequency = local.auth_rules[count.index].re_authentication_frequency
-  constraints                 = local.auth_rules[count.index].constraints
-  priority                    = count.index + 1
+  access                      = try(local.auth_rules[count.index].access, "ALLOW")
+  factor_mode                 = try(local.auth_rules[count.index].factor_mode, "2FA")
+  type                        = try(local.auth_rules[count.index].type, "ASSURANCE")
+  re_authentication_frequency = try(local.auth_rules[count.index].re_authentication_frequency, "PT0S")
+  constraints                 = try(local.auth_rules[count.index].constraints, [])
+  priority                    = try(local.auth_rules[count.index].priority, count.index + 1)
+  status                      = try(local.auth_rules[count.index].status, "ACTIVE")
+  custom_expression           = try(local.auth_rules[count.index].custom_expression, null) 
+   inactivity_period           = try(local.auth_rules[count.index].inactivity_period, "")
+  network_connection          = try(local.auth_rules[count.index].network_connection, "ANYWHERE")
+  network_includes            = try(local.auth_rules[count.index].network_includes, null)   
+  network_excludes            = try(local.auth_rules[count.index].network_excludes, null)   
+  risk_score                  = try(local.auth_rules[count.index].risk_score, "")
+  device_is_managed          = try(local.auth_rules[count.index].device_is_managed, null)
+  device_is_registered       = try(local.auth_rules[count.index].device_is_registered, null)
+  device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, [])
+
+  groups_included     = try(local.auth_rules[count.index].groups_included, [])
+  groups_excluded     = try(local.auth_rules[count.index].groups_excluded, [])
+  users_included      = try(local.auth_rules[count.index].users_included, [])
+  users_excluded      = try(local.auth_rules[count.index].users_excluded, [])
+  user_types_included = try(local.auth_rules[count.index].user_types_included, [])
+  user_types_excluded = try(local.auth_rules[count.index].user_types_excluded, [])
 
   dynamic "platform_include" {
     for_each = try(local.auth_rules[count.index].platform_include, [])
@@ -293,12 +215,8 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
       type    = platform_include.value.type
     }
   }
-
-  device_is_managed          = try(local.auth_rules[count.index].device_is_managed, null)
-  device_is_registered       = try(local.auth_rules[count.index].device_is_registered, null)
-  groups_included            = try(local.auth_rules[count.index].groups_included, null)
-  device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, null)
 }
+
 
 locals {
   recipient   = var.recipient == null ? var.sso_url : var.recipient
