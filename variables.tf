@@ -84,18 +84,18 @@ variable "acs_endpoints" {
 
 variable "admin_note" {
   type = object({
-    saas_mgmt_name         = string
-    sso_enforced           = bool
+    saas_mgmt_name = string
+    sso_enforced   = bool
     lifecycle_automations = object({
-      provisioning    = object({
+      provisioning = object({
         type = string
         link = string
       })
-      user_updates    = object({
+      user_updates = object({
         type = string
         link = string
       })
-      deprovisioning  = object({
+      deprovisioning = object({
         type = string
         link = string
       })
@@ -109,12 +109,12 @@ variable "admin_note" {
 
   validation {
     condition = alltrue([
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
-              var.admin_note.lifecycle_automations.provisioning.type),
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
-              var.admin_note.lifecycle_automations.user_updates.type),
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"], 
-              var.admin_note.lifecycle_automations.deprovisioning.type)
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      var.admin_note.lifecycle_automations.provisioning.type),
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      var.admin_note.lifecycle_automations.user_updates.type),
+      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      var.admin_note.lifecycle_automations.deprovisioning.type)
     ])
     error_message = "Lifecycle automation methods must be one of: SCIM, ADP, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
   }
@@ -136,7 +136,7 @@ variable "admin_note" {
   validation {
     condition = alltrue([
       for link in var.admin_note.automation_links :
-        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
     ])
     error_message = "Automation links must be valid URLs starting with http://, https://, or www."
   }
@@ -149,7 +149,7 @@ variable "admin_note" {
   validation {
     condition = alltrue([
       for account in var.admin_note.service_accounts :
-        can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+      can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
     ])
     error_message = "Service accounts must be valid email addresses."
   }
@@ -383,45 +383,35 @@ EOT
 }
 
 variable "authentication_policy_rules" {
-   description = <<-EOT
-  List of authentication policy rule configurations. Rules should include:
-  - name: (Required) Unique rule name
-  - access: Defaults to "ALLOW"
-  - factor_mode: Defaults to "2FA"
-  - Type-specific configurations (constraints, platform_includes, etc.)
-  - Network restrictions (network_includes/excludes)
-  - Device requirements (managed/registered status)
-  EOT
   type = list(object({
-    name = string
+    name                        = string
     access                      = optional(string, "ALLOW")
     factor_mode                 = optional(string, "2FA")
     type                        = optional(string, "ASSURANCE")
     status                      = optional(string, "ACTIVE")
-    re_authentication_frequency = optional(string, "PT0S")
-    priority                    = optional(number)
-    custom_expression          = optional(string)
-    network_includes           = optional(list(string))
-    network_excludes           = optional(list(string))
-    risk_score                 = optional(string, "")
-    inactivity_period          = optional(string, "")
-    network_connection         = optional(string, "ANYWHERE")
-    device_is_managed          = optional(bool)
-    device_is_registered       = optional(bool)
-    device_assurances_included = optional(list(string), [])
-    groups_included     = optional(list(string), [])
-    groups_excluded     = optional(list(string), [])
-    users_included      = optional(list(string), [])
-    users_excluded      = optional(list(string), [])
-    user_types_included = optional(list(string), [])
-    user_types_excluded = optional(list(string), [])
-    constraints = optional(list(string), [])
+    re_authentication_frequency = optional(string, "PT43800H")
+    custom_expression           = optional(string, null)
+    network_includes            = optional(list(string), null)
+    network_excludes            = optional(list(string), null)
+    risk_score                  = optional(string, "")
+    inactivity_period           = optional(string, "")
+    network_connection          = optional(string, "ANYWHERE")
+    device_is_managed           = optional(bool, null)
+    device_is_registered        = optional(bool, null)
+    device_assurances_included  = optional(list(string), [])
+    groups_included             = optional(list(string), [])
+    groups_excluded             = optional(list(string), [])
+    users_included              = optional(list(string), [])
+    users_excluded              = optional(list(string), [])
+    user_types_included         = optional(list(string), [])
+    user_types_excluded         = optional(list(string), [])
+    constraints                 = optional(list(string), [])
     platform_include = optional(list(object({
       os_type = optional(string, "OTHER")
       type    = optional(string, "DESKTOP")
-    })), )
+    })), [])
   }))
-  default     = null
+  default = null
 }
 
 variable "roles" {

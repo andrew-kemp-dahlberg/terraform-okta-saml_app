@@ -73,111 +73,127 @@ locals {
     )
   )
 
-  default_auth_rules = [
-    {
-        status                      = "ACTIVE"
-        type                        = "ASSURANCE"
-        access                      = "ALLOW"
-        custom_expression           = null
-        device_assurances_included  = local.device_assurances
-        device_is_managed           = true
-        device_is_registered        = true
-        factor_mode                 = "2FA"
-        groups_excluded             = []
-        groups_included             = [okta_group.assignment_groups[0].id]
-        inactivity_period           = "PT1H"
-        name                        = "Super Admin Authentication Policy Rule"
-        network_connection          = "ANYWHERE"
-        network_excludes            = null
-        network_includes            = null
-        priority                    = 1
-        re_authentication_frequency = "PT0S"
-        risk_score                  = ""
-        user_types_excluded         = []
-        user_types_included         = []
-        users_excluded              = []
-        users_included              = []
-        constraints                 =  [jsonencode({
-          knowledge = {
-            required = true
-          }
-          possession = {
-            authenticationMethods = [
-              {
-                key   = "okta_verify"
-                method = "signed_nonce"
-              }
-            ]
-            required           = true
-            hardwareProtection = "REQUIRED"
-            phishingResistant  = "REQUIRED"
-          }
-})]},
 
-  {  name                     = "Supported Devices"
-  status                      = "ACTIVE"
-  type                        = "ASSURANCE"
-  access                      = "ALLOW"
-  custom_expression           = null
-  device_assurances_included  = local.device_assurances
-  device_is_managed           = false
-  device_is_registered        = false
-  factor_mode                 = "2FA"
-  groups_excluded             = [okta_group.assignment_groups[0].id]
-  groups_included             = []
-  inactivity_period           = "PT43800H"
-  network_connection          = "ANYWHERE"
-  network_excludes            = null
-  network_includes            = null
-  priority                    = 1
-  re_authentication_frequency = "PT0S"
-  risk_score                  = ""
-  user_types_excluded         = []
-  user_types_included         = []
-  users_excluded              = []
-  users_included              = []
-  constraints                 =  [jsonencode({
-  "knowledge": {
-    "reauthenticateIn": "PT43800H",
-    "types": ["password"],
-    "required": true
-  },
-  "possession": {
-    "required": true,
-    "hardwareProtection": "REQUIRED"
-  }})]},
+  default_auth_rules = [
+    # Rule 1: Super Admin Authentication Policy Rule (not shown in your example but mentioned earlier)
+    {
+      name                        = "Super Admin Authentication Policy Rule"
+      access                      = "ALLOW"
+      factor_mode                 = "2FA"
+      type                        = "ASSURANCE"
+      status                      = "ACTIVE"
+      re_authentication_frequency = "PT0S"
+      priority                    = 1
+      custom_expression           = null
+      network_includes            = null
+      network_excludes            = null
+      risk_score                  = ""
+      inactivity_period           = "PT1H"
+      network_connection          = "ANYWHERE"
+      device_is_managed           = true
+      device_is_registered        = true
+      device_assurances_included  = local.device_assurances
+      groups_included             = [okta_group.assignment_groups[0].id]
+      groups_excluded             = []
+      users_included              = []
+      users_excluded              = []
+      user_types_included         = []
+      user_types_excluded         = []
+      constraints                 = [jsonencode({
+        knowledge = { required = true }
+        possession = {
+          authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
+          required           = true
+          hardwareProtection = "REQUIRED"
+          phishingResistant  = "REQUIRED"
+        }
+      })]
+      platform_include            = []  # Changed to match variable default
+    },
+
+    # Rule 2: Supported Devices
+    {
+      name                        = "Supported Devices"
+      access                      = "ALLOW"
+      factor_mode                 = "2FA"
+      type                        = "ASSURANCE"
+      status                      = "ACTIVE"
+      re_authentication_frequency = "PT0S"
+      priority                    = 2  # Added missing priority
+      custom_expression           = null
+      network_includes            = null
+      network_excludes            = null
+      risk_score                  = ""
+      inactivity_period           = "PT43800H"
+      network_connection          = "ANYWHERE"
+      device_is_managed           = null
+      device_is_registered        = null
+      device_assurances_included  = local.device_assurances
+      groups_included             = []
+      groups_excluded             = [okta_group.assignment_groups[0].id]
+      users_included              = []
+      users_excluded              = []
+      user_types_included         = []
+      user_types_excluded         = []
+      constraints                 = [jsonencode({
+        knowledge = {
+          reauthenticateIn = "PT43800H"
+          types            = ["password"]
+          required         = true
+        }
+        possession = {
+          required           = true
+          hardwareProtection = "REQUIRED"
+          phishingResistant  = null
+        }
+      })]
+      platform_include            = []  # This already matches variable default
+    },
+
+    # Rule 3: Unsupported Devices
     {
       name                        = "Unsupported Devices"
       access                      = "ALLOW"
       factor_mode                 = "2FA"
       type                        = "ASSURANCE"
+      status                      = "ACTIVE"
       re_authentication_frequency = "PT43800H"
-      platform_include = [
-        {
-          os_type = "CHROMEOS"
-          type    = "DESKTOP"
-        },
-        {
-          os_type = "OTHER"
-          type    = "DESKTOP"
-        },
-        {
-          os_type = "OTHER"
-          type    = "MOBILE"
+      priority                    = 3
+      custom_expression           = null
+      network_includes            = null
+      network_excludes            = null
+      risk_score                  = ""
+      inactivity_period           = ""
+      network_connection          = "ANYWHERE"
+      device_is_managed           = null
+      device_is_registered        = null
+      device_assurances_included  = local.device_assurances
+      groups_included             = []
+      groups_excluded             = []
+      users_included              = []
+      users_excluded              = []
+      user_types_included         = []
+      user_types_excluded         = []
+      constraints                 = [jsonencode({
+        knowledge = {
+          reauthenticateIn = "PT43800H"
+          types            = ["password"]
+          required         = true
         }
+        possession = {
+          required           = true
+          hardwareProtection = "REQUIRED"
+        }
+      })]
+      platform_include = [
+        { os_type = "CHROMEOS", type = "DESKTOP" },
+        { os_type = "OTHER", type = "DESKTOP" },
+        { os_type = "OTHER", type = "MOBILE" }
       ]
-           constraints = [jsonencode({
-  "knowledge": {
-    "reauthenticateIn": "PT43800H",
-    "types": ["password"],
-    "required": true
-  },
-  "possession": {
-    "required": true,
-    "hardwareProtection": "REQUIRED"
-    }})]}]
-    
- auth_rules = var.authentication_policy_rules == null ? tolist(local.default_auth_rules) : var.authentication_policy_rules
+    }
+  ]
+
+  auth_rules = var.authentication_policy_rules == null ? local.default_auth_rules : var.authentication_policy_rules
 }
 
 resource "okta_app_signon_policy_rule" "auth_policy_rules" {
@@ -200,7 +216,6 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
   device_is_managed          = try(local.auth_rules[count.index].device_is_managed, null)
   device_is_registered       = try(local.auth_rules[count.index].device_is_registered, null)
   device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, [])
-
   groups_included     = try(local.auth_rules[count.index].groups_included, [])
   groups_excluded     = try(local.auth_rules[count.index].groups_excluded, [])
   users_included      = try(local.auth_rules[count.index].users_included, [])
