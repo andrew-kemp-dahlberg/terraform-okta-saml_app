@@ -127,7 +127,7 @@ locals {
       inactivity_period           = "PT43800H"
       network_connection          = "ANYWHERE"
       device_is_managed           = null
-      device_is_registered        = null
+      device_is_registered        = true
       device_assurances_included  = local.device_assurances
       groups_included             = []
       groups_excluded             = [okta_group.assignment_groups[0].id]
@@ -167,9 +167,9 @@ locals {
       network_connection          = "ANYWHERE"
       device_is_managed           = null
       device_is_registered        = null
-      device_assurances_included  = local.device_assurances
+      device_assurances_included  = null
       groups_included             = []
-      groups_excluded             = []
+      groups_excluded             = [okta_group.assignment_groups[0].id]
       users_included              = []
       users_excluded              = []
       user_types_included         = []
