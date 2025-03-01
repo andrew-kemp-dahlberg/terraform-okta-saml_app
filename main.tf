@@ -136,15 +136,12 @@ locals {
       user_types_included         = []
       user_types_excluded         = []
       constraints                 = [jsonencode({
-        knowledge = {
-          reauthenticateIn = "PT43800H"
-          types            = ["password"]
-          required         = true
-        }
+        knowledge = { required = true }
         possession = {
+          authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
           required           = true
           hardwareProtection = "REQUIRED"
-          phishingResistant  = null
+          phishingResistant  = "REQUIRED"
         }
       })]
       platform_include            = []  # This already matches variable default
