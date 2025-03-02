@@ -100,7 +100,6 @@ variable "admin_note" {
         link = string
       })
     })
-    automation_links       = list(string)
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
