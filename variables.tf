@@ -85,6 +85,7 @@ variable "acs_endpoints" {
 variable "admin_note" {
   type = object({
     saas_mgmt_name = string
+    accounting_name = string
     sso_enforced   = bool
     lifecycle_automations = object({
       provisioning = object({

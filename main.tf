@@ -249,7 +249,7 @@ locals {
     }
   ]
   attribute_statements_clean = [
-    for attr in coalesce(local.attribute_statements, []) : {
+    for attr in coalesce(local.attribute_statements, []) : { #local.attribute_statements may need to go back to var.attribute statements. requires testing
       for key, value in {
         name         = attr.name
         type         = attr.type
