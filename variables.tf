@@ -125,6 +125,7 @@ variable "saml_app_settings" {
     audience    = string
     
     // Optional basic settings
+    label = optional(string, null)
     recipient   = optional(string, null)
     destination = optional(string, null)
     
