@@ -27,7 +27,7 @@ variable "private_key" {
   sensitive   = true
 }
 
-variable "label" {
+variable "name" {
   description = "Application label"
   type        = string
 }
@@ -35,6 +35,7 @@ variable "label" {
 variable "logo" {
   description = "Logo URL"
   type        = string
+  default     = null
 }
 
 
@@ -84,9 +85,9 @@ variable "acs_endpoints" {
 
 variable "admin_note" {
   type = object({
-    saas_mgmt_name = string
+    saas_mgmt_name  = string
     accounting_name = string
-    sso_enforced   = bool
+    sso_enforced    = bool
     lifecycle_automations = object({
       provisioning = object({
         type = string

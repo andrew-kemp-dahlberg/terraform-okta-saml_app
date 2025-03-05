@@ -22,7 +22,7 @@ locals {
 
   group_notes = [for p in local.profile : format(
     "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
-    var.label,
+    var.name,
     jsonencode(p)
   )]
 
@@ -37,22 +37,22 @@ locals {
 
 resource "okta_group" "assignment_groups" {
   count                     = length(local.roles)
-  name                      = "APP-ROLE-${upper(var.label)}-${upper(local.roles[count.index].role)}"
-  description               = "Group assigns users to ${var.label} with the role of ${local.roles[count.index].role}"
+  name                      = "APP-ROLE-${upper(var.name)}-${upper(local.roles[count.index].role)}"
+  description               = "Group assigns users to ${var.name} with the role of ${local.roles[count.index].role}"
   custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
 }
 
 locals {
-  admin_group_description = var.admin_role == {} ? "Group for ${var.label} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.label} super admins. Privileges are automatically assigned from this group" # Fixed var.label
+  admin_group_description = var.admin_role == {} ? "Group for ${var.name} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.name} super admins. Privileges are automatically assigned from this group"
 }
 
 locals {
-  policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.label}. It is the default policy set by Terraform." : "Authentication Policy for ${var.label}. It is a custom policy set through the terraform app module"
+  policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.name}. It is the default policy set by Terraform." : "Authentication Policy for ${var.name}. It is a custom policy set through the terraform app module"
 }
 
 resource "okta_app_signon_policy" "authentication_policy" {
   description = local.policy_description
-  name        = "${var.label} Authentication Policy"
+  name        = "${var.name} Authentication Policy"
   catch_all   = false
 }
 
@@ -99,16 +99,16 @@ locals {
       users_excluded              = []
       user_types_included         = []
       user_types_excluded         = []
-      constraints                 = [jsonencode({
+      constraints = [jsonencode({
         knowledge = { required = true }
         possession = {
           authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
-          required           = true
-          hardwareProtection = "REQUIRED"
-          phishingResistant  = "REQUIRED"
+          required              = true
+          hardwareProtection    = "REQUIRED"
+          phishingResistant     = "REQUIRED"
         }
       })]
-      platform_include            = []  # Changed to match variable default
+      platform_include = []
     },
 
     # Rule 2: Supported Devices
@@ -119,7 +119,7 @@ locals {
       type                        = "ASSURANCE"
       status                      = "ACTIVE"
       re_authentication_frequency = "PT0S"
-      priority                    = 2  # Added missing priority
+      priority                    = 2
       custom_expression           = null
       network_includes            = null
       network_excludes            = null
@@ -135,16 +135,16 @@ locals {
       users_excluded              = []
       user_types_included         = []
       user_types_excluded         = []
-      constraints                 = [jsonencode({
+      constraints = [jsonencode({
         knowledge = { required = true }
         possession = {
           authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
-          required           = true
-          hardwareProtection = "REQUIRED"
-          phishingResistant  = "REQUIRED"
+          required              = true
+          hardwareProtection    = "REQUIRED"
+          phishingResistant     = "REQUIRED"
         }
       })]
-      platform_include            = []  # This already matches variable default
+      platform_include = []
     },
 
     # Rule 3: Unsupported Devices
@@ -171,7 +171,7 @@ locals {
       users_excluded              = []
       user_types_included         = []
       user_types_excluded         = []
-      constraints                 = [jsonencode({
+      constraints = [jsonencode({
         knowledge = {
           reauthenticateIn = "PT43800H"
           types            = ["password"]
@@ -204,21 +204,21 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
   constraints                 = try(local.auth_rules[count.index].constraints, [])
   priority                    = try(local.auth_rules[count.index].priority, count.index + 1)
   status                      = try(local.auth_rules[count.index].status, "ACTIVE")
-  custom_expression           = try(local.auth_rules[count.index].custom_expression, null) 
-   inactivity_period           = try(local.auth_rules[count.index].inactivity_period, "")
+  custom_expression           = try(local.auth_rules[count.index].custom_expression, null)
+  inactivity_period           = try(local.auth_rules[count.index].inactivity_period, "")
   network_connection          = try(local.auth_rules[count.index].network_connection, "ANYWHERE")
-  network_includes            = try(local.auth_rules[count.index].network_includes, null)   
-  network_excludes            = try(local.auth_rules[count.index].network_excludes, null)   
+  network_includes            = try(local.auth_rules[count.index].network_includes, null)
+  network_excludes            = try(local.auth_rules[count.index].network_excludes, null)
   risk_score                  = try(local.auth_rules[count.index].risk_score, "")
-  device_is_managed          = try(local.auth_rules[count.index].device_is_managed, null)
-  device_is_registered       = try(local.auth_rules[count.index].device_is_registered, null)
-  device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, [])
-  groups_included     = try(local.auth_rules[count.index].groups_included, [])
-  groups_excluded     = try(local.auth_rules[count.index].groups_excluded, [])
-  users_included      = try(local.auth_rules[count.index].users_included, [])
-  users_excluded      = try(local.auth_rules[count.index].users_excluded, [])
-  user_types_included = try(local.auth_rules[count.index].user_types_included, [])
-  user_types_excluded = try(local.auth_rules[count.index].user_types_excluded, [])
+  device_is_managed           = try(local.auth_rules[count.index].device_is_managed, null)
+  device_is_registered        = try(local.auth_rules[count.index].device_is_registered, null)
+  device_assurances_included  = try(local.auth_rules[count.index].device_assurances_included, [])
+  groups_included             = try(local.auth_rules[count.index].groups_included, [])
+  groups_excluded             = try(local.auth_rules[count.index].groups_excluded, [])
+  users_included              = try(local.auth_rules[count.index].users_included, [])
+  users_excluded              = try(local.auth_rules[count.index].users_excluded, [])
+  user_types_included         = try(local.auth_rules[count.index].user_types_included, [])
+  user_types_excluded         = try(local.auth_rules[count.index].user_types_excluded, [])
 
   dynamic "platform_include" {
     for_each = try(local.auth_rules[count.index].platform_include, [])
@@ -260,7 +260,7 @@ locals {
       } : key => value if value != null
     }
   ]
-
+  saml_label = var.name
   admin_note = {
     name = var.admin_note.saas_mgmt_name
     sso  = var.admin_note.sso_enforced
@@ -274,60 +274,92 @@ locals {
   }
 }
 
-resource "okta_app_saml" "saml_app" {
-  accessibility_error_redirect_url = var.accessibility_error_redirect_url
-  accessibility_login_redirect_url = var.accessibility_login_redirect_url
-  accessibility_self_service       = var.accessibility_self_service
-  acs_endpoints                    = var.acs_endpoints
-  admin_note                       = jsonencode(local.admin_note)
-  assertion_signed                 = var.assertion_signed
-  audience                         = var.audience
-  authentication_policy            = okta_app_signon_policy.authentication_policy.id
-  authn_context_class_ref          = var.authn_context_class_ref
-  auto_submit_toolbar              = var.auto_submit_toolbar
-  default_relay_state              = var.default_relay_state
-  destination                      = local.destination
-  digest_algorithm                 = var.digest_algorithm
-  enduser_note                     = var.enduser_note
-  hide_ios                         = var.hide_ios
-  hide_web                         = var.hide_web
-  honor_force_authn                = var.honor_force_authn
-  idp_issuer                       = var.idp_issuer
-  implicit_assignment              = var.implicit_assignment
-  inline_hook_id                   = var.inline_hook_id
-  key_name                         = var.key_name
-  key_years_valid                  = var.key_years_valid
-  label                            = var.label
-  logo                             = var.logo
-  preconfigured_app                = var.preconfigured_app
-  recipient                        = local.recipient
-  request_compressed               = var.request_compressed
-  response_signed                  = var.response_signed
-  saml_signed_request_enabled      = var.saml_signed_request_enabled
-  saml_version                     = var.saml_version
-  signature_algorithm              = var.signature_algorithm
-  single_logout_certificate        = var.single_logout_certificate
-  single_logout_issuer             = var.single_logout_issuer
-  single_logout_url                = var.single_logout_url
-  sp_issuer                        = var.sp_issuer
-  sso_url                          = var.sso_url
-  status                           = var.status
-  subject_name_id_format           = var.subject_name_id_format
-  subject_name_id_template         = var.subject_name_id_template
-  user_name_template               = var.user_name_template
-  user_name_template_push_status   = var.user_name_template_push_status
-  user_name_template_suffix        = var.user_name_template_suffix
-  user_name_template_type          = var.user_name_template_type
+resource "okta_app_saml" "saml_apps" {
+  for_each = { for idx, app in var.saml_app_settings : idx => app }
 
+  # Required basic settings
+  sso_url  = each.value.sso_url
+  audience = each.value.audience
+
+  # Optional basic settings
+  recipient   = each.value.recipient
+  destination = each.value.destination
+
+  # Accessibility settings
+  accessibility_error_redirect_url = each.value.accessibility_error_redirect_url
+  accessibility_login_redirect_url = each.value.accessibility_login_redirect_url
+  accessibility_self_service       = each.value.accessibility_self_service
+  auto_submit_toolbar              = each.value.auto_submit_toolbar
+  hide_ios                         = each.value.hide_ios
+  hide_web                         = each.value.hide_web
+  default_relay_state              = each.value.default_relay_state
+
+  # Endpoint settings
+  acs_endpoints             = each.value.acs_endpoints
+  single_logout_certificate = each.value.single_logout_certificate
+  single_logout_issuer      = each.value.single_logout_issuer
+  single_logout_url         = each.value.single_logout_url
+
+  # SAML protocol settings
+  assertion_signed            = each.value.assertion_signed
+  authn_context_class_ref     = each.value.authn_context_class_ref
+  digest_algorithm            = each.value.digest_algorithm
+  honor_force_authn           = each.value.honor_force_authn
+  idp_issuer                  = each.value.idp_issuer
+  request_compressed          = each.value.request_compressed
+  response_signed             = each.value.response_signed
+  saml_signed_request_enabled = each.value.saml_signed_request_enabled
+  saml_version                = each.value.saml_version
+  signature_algorithm         = each.value.signature_algorithm
+  sp_issuer                   = each.value.sp_issuer
+  subject_name_id_format      = each.value.subject_name_id_format
+  subject_name_id_template    = each.value.subject_name_id_template
+
+  # Certificate settings
+  key_name        = each.value.key_name
+  key_years_valid = each.value.key_years_valid
+
+  # User management settings
+  user_name_template             = each.value.user_name_template
+  user_name_template_push_status = each.value.user_name_template_push_status
+  user_name_template_suffix      = each.value.user_name_template_suffix
+  user_name_template_type        = each.value.user_name_template_type
+  inline_hook_id                 = each.value.inline_hook_id
+
+  # Application settings
+  status              = each.value.status
+  enduser_note        = each.value.enduser_note
+  implicit_assignment = each.value.implicit_assignment
+
+  # Label is required but not in the variable definition, so we'll use audience as a fallback
+  label = "SAML App ${each.key} - ${each.value.audience}"
+
+  # Dynamic attribute statements
   dynamic "attribute_statements" {
-    for_each = local.attribute_statements_clean
+    for_each = each.value.attribute_statements != null ? each.value.attribute_statements : []
+
     content {
-      name         = attribute_statements.value.name
-      type         = attribute_statements.value.type
-      values       = attribute_statements.value.values
-      filter_type  = attribute_statements.value.filter_type
+      name      = attribute_statements.value.name
+      type      = attribute_statements.value.type
+      namespace = attribute_statements.value.name_format
+
+      # Handle user vs group type differences
+      filter_type  = attribute_statements.value.type == "group" ? "REGEX" : null
       filter_value = attribute_statements.value.filter_value
-      namespace    = attribute_statements.value.namespace
+      values       = attribute_statements.value.values
+    }
+  }
+}
+
+# Output to get all the created SAML apps
+output "saml_apps" {
+  description = "Created SAML applications"
+  value = {
+    for idx, app in okta_app_saml.saml_apps : idx => {
+      id          = app.id
+      label       = app.label
+      status      = app.status
+      sign_on_url = app.sign_on_mode
     }
   }
 }
