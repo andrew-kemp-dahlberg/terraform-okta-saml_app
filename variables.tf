@@ -84,14 +84,6 @@ variable "admin_note" {
   }
 
   validation {
-    condition = alltrue([
-      for link in var.admin_note.automation_links :
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
-    ])
-    error_message = "Automation links must be valid URLs starting with http://, https://, or www."
-  }
-
-  validation {
     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
     error_message = "App owner must be a valid email address."
   }
@@ -149,7 +141,7 @@ variable "saml_app_settings" {
     authn_context_class_ref    = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
     digest_algorithm           = optional(string, "SHA256")
     honor_force_authn          = optional(bool, true)
-    idp_issuer                 = optional(string, "http://www.okta.com/${org.externalKey}")
+    idp_issuer                 = optional(string, "http://www.okta.com/$${org.externalKey}")
     request_compressed         = optional(bool, null)
     response_signed            = optional(bool, true)
     saml_signed_request_enabled = optional(bool, false)
@@ -157,14 +149,14 @@ variable "saml_app_settings" {
     signature_algorithm        = optional(string, "RSA_SHA256")
     sp_issuer                  = optional(string, null)
     subject_name_id_format     = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
-    subject_name_id_template   = optional(string, "${user.userName}")
+    subject_name_id_template   = optional(string, "$${user.userName}")
     
     // Certificate settings
     key_name        = optional(string, null)
     key_years_valid = optional(number, null)
     
     // User management settings
-    user_name_template           = optional(string, "${source.login}")
+    user_name_template           = optional(string, "$${source.login}")
     user_name_template_push_status = optional(string, null)
     user_name_template_suffix    = optional(string, null)
     user_name_template_type      = optional(string, "BUILT_IN")
@@ -224,6 +216,8 @@ Validation errors:
 EOT
   }
 }
+
+
 
 variable "authentication_policy_rules" {
   type = list(object({

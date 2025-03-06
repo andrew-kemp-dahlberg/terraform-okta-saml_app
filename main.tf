@@ -346,23 +346,11 @@ resource "okta_app_saml" "saml_apps" {
   }
 }
 
-# Output to get all the created SAML apps
-output "saml_apps" {
-  description = "Created SAML applications"
-  value = {
-    for idx, app in okta_app_saml.saml_apps : idx => {
-      id          = app.id
-      label       = app.label
-      status      = app.status
-      sign_on_url = app.sign_on_mode
-      admin_note  = local.saml_apps_map[idx]._admin_note
-    }
-  }
-}
 
 resource "okta_app_group_assignments" "main_app" {
-  app_id = okta_app_saml.saml_app.id
 
+  for_each = okta_app_saml.saml_apps
+  app_id = okta_app_saml.saml_apps[*].id
   dynamic "group" {
     for_each = okta_group.assignment_groups[*].id
     iterator = group_id
