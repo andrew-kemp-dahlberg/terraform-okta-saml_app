@@ -46,7 +46,8 @@ The provider is configured with the following scopes:
 
 ```hcl
 module "okta_saml_app" {
-  source = "path/to/module"
+  source = "andrew-kemp-dahlberg/app/okta"
+  version = "0.1.1"
 
   # Okta authentication
   client_id      = var.okta_client_id
