@@ -238,14 +238,12 @@ locals {
   attribute_statements = var.saml_app.attribute_statements == null ? null : [
     for attr in var.saml_app.attribute_statements : {
       name = attr.name
-
       namespace = lookup({
         "basic"           = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
         "uri reference"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
         "unspecified"     = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-        "scim"            = "urn:ietf:params:scim:schemas:core:2.0:User"
+        "scim"            =  attr.type == "user" ? "urn:ietf:params:scim:schemas:core:2.0:User" : "urn:ietf:params:scim:schemas:core:2.0:Group"
         "scim enterprise" = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
-        "scim group"      = "urn:ietf:params:scim:schemas:core:2.0:Group"
       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
       type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
       filter_type  = attr.type == "group" ? "REGEX" : null
