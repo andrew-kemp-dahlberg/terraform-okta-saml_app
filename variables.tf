@@ -105,7 +105,7 @@ variable "admin_note" {
   }
 }
 
-variable "saml_app_settings" {
+variable "saml_app" {
   description = "List of SAML application configuration objects"
   type = object({
     // Required basic settings
@@ -176,13 +176,13 @@ variable "saml_app_settings" {
   })
 
   validation {
-    condition = var.saml_app_settings.sso_url != null && var.saml_app_settings.audience != null
+    condition = var.saml_app.sso_url != null && var.saml_app.audience != null
     error_message = "SSO URL and Audience are required fields for SAML applications."
   }
 
   validation {
-    condition = var.saml_app_settings.attribute_statements == null ? true : alltrue([
-      for attr in var.saml_app_settings.attribute_statements :
+    condition = var.saml_app.attribute_statements == null ? true : alltrue([
+      for attr in var.saml_app.attribute_statements :
       (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
       (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
     ])
@@ -194,15 +194,15 @@ EOT
   }
 
   validation {
-    condition = var.saml_app_settings.attribute_statements == null ? true : alltrue([
-      for attr in var.saml_app_settings.attribute_statements :
+    condition = var.saml_app.attribute_statements == null ? true : alltrue([
+      for attr in var.saml_app.attribute_statements :
       contains(["user", "group"], attr.type) &&
-      contains(["basic", "uri reference", "unspecified"], attr.name_format)
+      contains(["basic", "uri reference", "scim", "scim enterprise", "scim group", "unspecified"], attr.name_format)
     ])
     error_message = <<EOT
 Validation errors:
 - Each object in attribute_statements Type must be 'user' or 'group'
-- attribute_statements name_format must be 'basic', 'uri reference', or 'unspecified'
+- attribute_statements name_format must be 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group' or 'unspecified'
 EOT
   }
 }
