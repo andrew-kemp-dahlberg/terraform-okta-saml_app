@@ -97,8 +97,6 @@ variable "admin_note" {
   }
 }
 
-
-
 variable "saml_app_settings" {
   description = "List of SAML application configuration objects"
   type = object({
@@ -170,36 +168,28 @@ variable "saml_app_settings" {
   })
 
   validation {
-    condition = alltrue([
-      for app in var.saml_app_settings : app.sso_url != null && app.audience != null
-    ])
+    condition = var.saml_app_settings.sso_url != null && var.saml_app_settings.audience != null
     error_message = "SSO URL and Audience are required fields for SAML applications."
   }
 
   validation {
-    condition = alltrue([
-      for app in var.saml_app_settings :
-      app.attribute_statements == null ? true : alltrue([
-        for attr in app.attribute_statements :
-        (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
-        (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
-      ])
+    condition = var.saml_app_settings.attribute_statements == null ? true : alltrue([
+      for attr in var.saml_app_settings.attribute_statements :
+      (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
+      (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
     ])
     error_message = <<EOT
 Invalid configuration:
 - attribute_statements with "user" types must have non-empty "values" and no filter_value
-- attribute_statements with "group"types must have "filter_value" and no "values"
+- attribute_statements with "group" types must have "filter_value" and no "values"
 EOT
   }
 
   validation {
-    condition = alltrue([
-      for app in var.saml_app_settings :
-      app.attribute_statements == null ? true : alltrue([
-        for attr in app.attribute_statements :
-        contains(["user", "group"], attr.type) &&
-        contains(["basic", "uri reference", "unspecified"], attr.name_format)
-      ])
+    condition = var.saml_app_settings.attribute_statements == null ? true : alltrue([
+      for attr in var.saml_app_settings.attribute_statements :
+      contains(["user", "group"], attr.type) &&
+      contains(["basic", "uri reference", "unspecified"], attr.name_format)
     ])
     error_message = <<EOT
 Validation errors:
@@ -208,8 +198,6 @@ Validation errors:
 EOT
   }
 }
-
-
 
 variable "authentication_policy_rules" {
   type = list(object({
