@@ -43,7 +43,7 @@ resource "okta_group" "assignment_groups" {
 }
 
 locals {
-  admin_group_description = var.admin_role == {} ? "Group for ${var.name} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.name} super admins. Privileges are automatically assigned from this group" 
+  admin_group_description = var.admin_role == {} ? "Group for ${var.name} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.name} super admins. Privileges are automatically assigned from this group"
 }
 
 locals {
@@ -52,7 +52,7 @@ locals {
 
 resource "okta_app_signon_policy" "authentication_policy" {
   description = local.policy_description
-  name        = "${var.name } Authentication Policy"
+  name        = "${var.name} Authentication Policy"
   catch_all   = false
 }
 
@@ -99,16 +99,16 @@ locals {
       users_excluded              = []
       user_types_included         = []
       user_types_excluded         = []
-      constraints                 = [jsonencode({
+      constraints = [jsonencode({
         knowledge = { required = true }
         possession = {
           authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
-          required           = true
-          hardwareProtection = "REQUIRED"
-          phishingResistant  = "REQUIRED"
+          required              = true
+          hardwareProtection    = "REQUIRED"
+          phishingResistant     = "REQUIRED"
         }
       })]
-      platform_include            = []  
+      platform_include = []
     },
 
     # Rule 2: Supported Devices
@@ -119,7 +119,7 @@ locals {
       type                        = "ASSURANCE"
       status                      = "ACTIVE"
       re_authentication_frequency = "PT0S"
-      priority                    = 2  
+      priority                    = 2
       custom_expression           = null
       network_includes            = null
       network_excludes            = null
@@ -135,16 +135,16 @@ locals {
       users_excluded              = []
       user_types_included         = []
       user_types_excluded         = []
-      constraints                 = [jsonencode({
+      constraints = [jsonencode({
         knowledge = { required = true }
         possession = {
           authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
-          required           = true
-          hardwareProtection = "REQUIRED"
-          phishingResistant  = "REQUIRED"
+          required              = true
+          hardwareProtection    = "REQUIRED"
+          phishingResistant     = "REQUIRED"
         }
       })]
-      platform_include            = [] 
+      platform_include = []
     },
 
     # Rule 3: Unsupported Devices
@@ -171,7 +171,7 @@ locals {
       users_excluded              = []
       user_types_included         = []
       user_types_excluded         = []
-      constraints                 = [jsonencode({
+      constraints = [jsonencode({
         knowledge = {
           reauthenticateIn = "PT43800H"
           types            = ["password"]
@@ -204,21 +204,21 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
   constraints                 = try(local.auth_rules[count.index].constraints, [])
   priority                    = try(local.auth_rules[count.index].priority, count.index + 1)
   status                      = try(local.auth_rules[count.index].status, "ACTIVE")
-  custom_expression           = try(local.auth_rules[count.index].custom_expression, null) 
-   inactivity_period           = try(local.auth_rules[count.index].inactivity_period, "")
+  custom_expression           = try(local.auth_rules[count.index].custom_expression, null)
+  inactivity_period           = try(local.auth_rules[count.index].inactivity_period, "")
   network_connection          = try(local.auth_rules[count.index].network_connection, "ANYWHERE")
-  network_includes            = try(local.auth_rules[count.index].network_includes, null)   
-  network_excludes            = try(local.auth_rules[count.index].network_excludes, null)   
+  network_includes            = try(local.auth_rules[count.index].network_includes, null)
+  network_excludes            = try(local.auth_rules[count.index].network_excludes, null)
   risk_score                  = try(local.auth_rules[count.index].risk_score, "")
-  device_is_managed          = try(local.auth_rules[count.index].device_is_managed, null)
-  device_is_registered       = try(local.auth_rules[count.index].device_is_registered, null)
-  device_assurances_included = try(local.auth_rules[count.index].device_assurances_included, [])
-  groups_included     = try(local.auth_rules[count.index].groups_included, [])
-  groups_excluded     = try(local.auth_rules[count.index].groups_excluded, [])
-  users_included      = try(local.auth_rules[count.index].users_included, [])
-  users_excluded      = try(local.auth_rules[count.index].users_excluded, [])
-  user_types_included = try(local.auth_rules[count.index].user_types_included, [])
-  user_types_excluded = try(local.auth_rules[count.index].user_types_excluded, [])
+  device_is_managed           = try(local.auth_rules[count.index].device_is_managed, null)
+  device_is_registered        = try(local.auth_rules[count.index].device_is_registered, null)
+  device_assurances_included  = try(local.auth_rules[count.index].device_assurances_included, [])
+  groups_included             = try(local.auth_rules[count.index].groups_included, [])
+  groups_excluded             = try(local.auth_rules[count.index].groups_excluded, [])
+  users_included              = try(local.auth_rules[count.index].users_included, [])
+  users_excluded              = try(local.auth_rules[count.index].users_excluded, [])
+  user_types_included         = try(local.auth_rules[count.index].user_types_included, [])
+  user_types_excluded         = try(local.auth_rules[count.index].user_types_excluded, [])
 
   dynamic "platform_include" {
     for_each = try(local.auth_rules[count.index].platform_include, [])
@@ -231,126 +231,110 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
 
 
 locals {
-  # Process each SAML app configuration to add computed locals
-  saml_apps_with_locals = [
-    for idx, app in var.saml_app_settings : merge(app, {
-      # Computed fields for each app
-      _recipient = app.recipient == null ? app.sso_url : app.recipient
-      _destination = app.destination == null ? app.sso_url : app.destination
-      
-      _attribute_statements = app.attribute_statements == null ? [] : [
-        for attr in app.attribute_statements : {
-          name = attr.name
-          namespace = lookup({
-            "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-            "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-            "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-          }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-          type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
-          filter_type  = attr.type == "group" ? "REGEX" : null
-          filter_value = attr.type == "group" ? attr.filter_value : null
-          values       = attr.type == "user" ? attr.values : []
-        }
-      ]
-      
-      _label = "SAML App - ${app.name}"
-      
-      _admin_note = {
-        name = try(app.admin_note.saas_mgmt_name, "")
-        sso  = try(app.admin_note.sso_enforced, false)
-        auto = try(distinct([
-          app.admin_note.lifecycle_automations.provisioning.type,
-          app.admin_note.lifecycle_automations.user_updates.type,
-          app.admin_note.lifecycle_automations.deprovisioning.type
-        ]), ["None"])
-        owner = try(app.admin_note.app_owner, "")
-        audit = try(app.admin_note.last_access_audit_date, "")
-      }
-    })
+  recipient   = var.saml_app_settings.recipient == null ? var.saml_app_settings.sso_url : var.saml_app_settings.recipient
+  destination = var.saml_app_settings.destination == null ? var.saml_app_settings.sso_url : var.saml_app_settings.destination
+
+  attribute_statements = var.saml_app_settings.attribute_statements == null ? null : [
+    for attr in var.saml_app_settings.attribute_statements : {
+      name = attr.name
+      namespace = lookup({
+        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+      }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+      filter_type  = attr.type == "group" ? "REGEX" : null
+      filter_value = attr.type == "group" ? attr.filter_value : null
+      values       = attr.type == "user" ? attr.values : []
+    }
   ]
-  
-  # Convert list to map with index as key for easier reference in resources
-  saml_apps_map = { for idx, app in local.saml_apps_with_locals : idx => app }
+  attribute_statements_clean = [
+    for attr in coalesce(local.attribute_statements, []) : { #local.attribute_statements may need to go back to var.attribute statements. requires testing
+      for key, value in {
+        name         = attr.name
+        type         = attr.type
+        values       = attr.values
+        filter_type  = attr.filter_type
+        filter_value = attr.filter_value
+        namespace    = attr.namespace
+      } : key => value if value != null
+    }
+  ]
+
+  admin_note = {
+    name = var.admin_note.saas_mgmt_name
+    sso  = var.admin_note.sso_enforced
+    auto = distinct([
+      var.admin_note.lifecycle_automations.provisioning.type,
+      var.admin_note.lifecycle_automations.user_updates.type,
+      var.admin_note.lifecycle_automations.deprovisioning.type
+    ])
+    owner = var.admin_note.app_owner
+    audit = var.admin_note.last_access_audit_date
+  }
 }
 
-resource "okta_app_saml" "saml_apps" {
-  for_each = local.saml_apps_map
+resource "okta_app_saml" "saml_app" {
+  accessibility_error_redirect_url = var.saml_app_settings.accessibility_error_redirect_url
+  accessibility_login_redirect_url = var.saml_app_settings.accessibility_login_redirect_url
+  accessibility_self_service       = var.saml_app_settings.accessibility_self_service
+  acs_endpoints                    = var.saml_app_settings.acs_endpoints
+  admin_note                       = jsonencode(local.admin_note)
+  assertion_signed                 = var.saml_app_settings.assertion_signed
+  audience                         = var.saml_app_settings.audience
+  authentication_policy            = okta_app_signon_policy.authentication_policy.id
+  authn_context_class_ref          = var.saml_app_settings.authn_context_class_ref
+  auto_submit_toolbar              = var.saml_app_settings.auto_submit_toolbar
+  default_relay_state              = var.saml_app_settings.default_relay_state
+  destination                      = local.destination
+  digest_algorithm                 = var.saml_app_settings.digest_algorithm
+  enduser_note                     = var.saml_app_settings.enduser_note
+  hide_ios                         = var.saml_app_settings.hide_ios
+  hide_web                         = var.saml_app_settings.hide_web
+  honor_force_authn                = var.saml_app_settings.honor_force_authn
+  idp_issuer                       = var.saml_app_settings.idp_issuer
+  implicit_assignment              = var.saml_app_settings.implicit_assignment
+  inline_hook_id                   = var.saml_app_settings.inline_hook_id
+  key_name                         = var.saml_app_settings.key_name
+  key_years_valid                  = var.saml_app_settings.key_years_valid
+  label                            = var.saml_app_settings.label
+  logo                             = var.saml_app_settings.logo
+  preconfigured_app                = var.saml_app_settings.preconfigured_app
+  recipient                        = local.recipient
+  request_compressed               = var.saml_app_settings.request_compressed
+  response_signed                  = var.saml_app_settings.response_signed
+  saml_signed_request_enabled      = var.saml_app_settings.saml_signed_request_enabled
+  saml_version                     = var.saml_app_settings.saml_version
+  signature_algorithm              = var.saml_app_settings.signature_algorithm
+  single_logout_certificate        = var.saml_app_settings.single_logout_certificate
+  single_logout_issuer             = var.saml_app_settings.single_logout_issuer
+  single_logout_url                = var.saml_app_settings.single_logout_url
+  sp_issuer                        = var.saml_app_settings.sp_issuer
+  sso_url                          = var.saml_app_settings.sso_url
+  status                           = var.saml_app_settings.status
+  subject_name_id_format           = var.saml_app_settings.subject_name_id_format
+  subject_name_id_template         = var.saml_app_settings.subject_name_id_template
+  user_name_template               = var.saml_app_settings.user_name_template
+  user_name_template_push_status   = var.saml_app_settings.user_name_template_push_status
+  user_name_template_suffix        = var.saml_app_settings.user_name_template_suffix
+  user_name_template_type          = var.saml_app_settings.user_name_template_type
 
-  # Required basic settings
-  label    = each.value._label
-  sso_url  = each.value.sso_url
-  audience = each.value.audience
-  
-  # Optional basic settings with computed defaults
-  recipient   = each.value._recipient
-  destination = each.value._destination
-  
-  # Accessibility settings
-  accessibility_error_redirect_url = each.value.accessibility_error_redirect_url
-  accessibility_login_redirect_url = each.value.accessibility_login_redirect_url
-  accessibility_self_service       = each.value.accessibility_self_service
-  auto_submit_toolbar              = each.value.auto_submit_toolbar
-  hide_ios                         = each.value.hide_ios
-  hide_web                         = each.value.hide_web
-  default_relay_state              = each.value.default_relay_state
-  
-  # Endpoint settings
-  acs_endpoints           = each.value.acs_endpoints
-  single_logout_certificate = each.value.single_logout_certificate
-  single_logout_issuer    = each.value.single_logout_issuer
-  single_logout_url       = each.value.single_logout_url
-  
-  # SAML protocol settings
-  assertion_signed           = each.value.assertion_signed
-  authn_context_class_ref    = each.value.authn_context_class_ref
-  digest_algorithm           = each.value.digest_algorithm
-  honor_force_authn          = each.value.honor_force_authn
-  idp_issuer                 = each.value.idp_issuer
-  request_compressed         = each.value.request_compressed
-  response_signed            = each.value.response_signed
-  saml_signed_request_enabled = each.value.saml_signed_request_enabled
-  saml_version               = each.value.saml_version
-  signature_algorithm        = each.value.signature_algorithm
-  sp_issuer                  = each.value.sp_issuer
-  subject_name_id_format     = each.value.subject_name_id_format
-  subject_name_id_template   = each.value.subject_name_id_template
-  
-  # Certificate settings
-  key_name        = each.value.key_name
-  key_years_valid = each.value.key_years_valid
-  
-  # User management settings
-  user_name_template           = each.value.user_name_template
-  user_name_template_push_status = each.value.user_name_template_push_status
-  user_name_template_suffix    = each.value.user_name_template_suffix
-  user_name_template_type      = each.value.user_name_template_type
-  inline_hook_id               = each.value.inline_hook_id
-  
-  # Application settings
-  status              = each.value.status
-  enduser_note        = each.value.enduser_note
-  implicit_assignment = each.value.implicit_assignment
-  
-  # Dynamic attribute statements using the processed local values
   dynamic "attribute_statements" {
-    for_each = each.value._attribute_statements
-    
+    for_each = local.attribute_statements_clean
     content {
-      name       = attribute_statements.value.name
-      namespace  = attribute_statements.value.namespace
-      type       = attribute_statements.value.type
-      filter_type = attribute_statements.value.filter_type
+      name         = attribute_statements.value.name
+      type         = attribute_statements.value.type
+      values       = attribute_statements.value.values
+      filter_type  = attribute_statements.value.filter_type
       filter_value = attribute_statements.value.filter_value
-      values     = attribute_statements.value.values
+      namespace    = attribute_statements.value.namespace
     }
   }
 }
 
-
 resource "okta_app_group_assignments" "main_app" {
+  app_id = okta_app_saml.saml_app.id
 
-  for_each = okta_app_saml.saml_apps
-  app_id = okta_app_saml.saml_apps[*].id
   dynamic "group" {
     for_each = okta_group.assignment_groups[*].id
     iterator = group_id

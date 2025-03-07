@@ -34,9 +34,9 @@ variable "name" {
 
 variable "admin_note" {
   type = object({
-    saas_mgmt_name = string
+    saas_mgmt_name  = string
     accounting_name = string
-    sso_enforced   = bool
+    sso_enforced    = bool
     lifecycle_automations = object({
       provisioning = object({
         type = string
@@ -97,30 +97,22 @@ variable "admin_note" {
   }
 }
 
-variable "logo" {
-  description = "Logo URL"
-  type        = string
-  default     = null
-}
 
-variable "preconfigured_app" {
-  description = "Preconfigured application ID"
-  type        = string
-  default     = null
-}
 
 variable "saml_app_settings" {
   description = "List of SAML application configuration objects"
-  type = list(object({
+  type = object({
     // Required basic settings
-    sso_url     = string
-    audience    = string
-    
+    sso_url  = string
+    audience = string
+    logo     = string
+
     // Optional basic settings
-    label = optional(string, null)
-    recipient   = optional(string, null)
-    destination = optional(string, null)
-    
+    label             = optional(string, null)
+    preconfigured_app = optional(string, null)
+    recipient         = optional(string, null)
+    destination       = optional(string, null)
+
     // Accessibility settings
     accessibility_error_redirect_url = optional(string, null)
     accessibility_login_redirect_url = optional(string, null)
@@ -129,44 +121,44 @@ variable "saml_app_settings" {
     hide_ios                         = optional(bool, false)
     hide_web                         = optional(bool, false)
     default_relay_state              = optional(string, null)
-    
+
     // Endpoint settings
-    acs_endpoints           = optional(list(string), [])
+    acs_endpoints             = optional(list(string), [])
     single_logout_certificate = optional(string, null)
-    single_logout_issuer    = optional(string, null)
-    single_logout_url       = optional(string, null)
-    
+    single_logout_issuer      = optional(string, null)
+    single_logout_url         = optional(string, null)
+
     // SAML protocol settings
-    assertion_signed           = optional(bool, true)
-    authn_context_class_ref    = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
-    digest_algorithm           = optional(string, "SHA256")
-    honor_force_authn          = optional(bool, true)
-    idp_issuer                 = optional(string, "http://www.okta.com/$${org.externalKey}")
-    request_compressed         = optional(bool, null)
-    response_signed            = optional(bool, true)
+    assertion_signed            = optional(bool, true)
+    authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
+    digest_algorithm            = optional(string, "SHA256")
+    honor_force_authn           = optional(bool, true)
+    idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
+    request_compressed          = optional(bool, null)
+    response_signed             = optional(bool, true)
     saml_signed_request_enabled = optional(bool, false)
-    saml_version               = optional(string, "2.0")
-    signature_algorithm        = optional(string, "RSA_SHA256")
-    sp_issuer                  = optional(string, null)
-    subject_name_id_format     = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
-    subject_name_id_template   = optional(string, "$${user.userName}")
-    
+    saml_version                = optional(string, "2.0")
+    signature_algorithm         = optional(string, "RSA_SHA256")
+    sp_issuer                   = optional(string, null)
+    subject_name_id_format      = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+    subject_name_id_template    = optional(string, "$${user.userName}")
+
     // Certificate settings
     key_name        = optional(string, null)
     key_years_valid = optional(number, null)
-    
+
     // User management settings
-    user_name_template           = optional(string, "$${source.login}")
+    user_name_template             = optional(string, "$${source.login}")
     user_name_template_push_status = optional(string, null)
-    user_name_template_suffix    = optional(string, null)
-    user_name_template_type      = optional(string, "BUILT_IN")
-    inline_hook_id               = optional(string, null)
-    
+    user_name_template_suffix      = optional(string, null)
+    user_name_template_type        = optional(string, "BUILT_IN")
+    inline_hook_id                 = optional(string, null)
+
     // Application settings
     status              = optional(string, "ACTIVE")
     enduser_note        = optional(string, null)
     implicit_assignment = optional(bool, false)
-    
+
     // Attribute statements
     attribute_statements = optional(list(object({
       type         = string
@@ -175,23 +167,23 @@ variable "saml_app_settings" {
       filter_value = optional(string, null)
       values       = optional(list(string), [])
     })), null)
-  }))
-  
+  })
+
   validation {
     condition = alltrue([
       for app in var.saml_app_settings : app.sso_url != null && app.audience != null
     ])
     error_message = "SSO URL and Audience are required fields for SAML applications."
   }
-  
+
   validation {
     condition = alltrue([
       for app in var.saml_app_settings :
-        app.attribute_statements == null ? true : alltrue([
-          for attr in app.attribute_statements :
-          (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
-          (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
-        ])
+      app.attribute_statements == null ? true : alltrue([
+        for attr in app.attribute_statements :
+        (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
+        (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
+      ])
     ])
     error_message = <<EOT
 Invalid configuration:
@@ -199,15 +191,15 @@ Invalid configuration:
 - attribute_statements with "group"types must have "filter_value" and no "values"
 EOT
   }
-  
+
   validation {
     condition = alltrue([
       for app in var.saml_app_settings :
-        app.attribute_statements == null ? true : alltrue([
-          for attr in app.attribute_statements :
-          contains(["user", "group"], attr.type) &&
-          contains(["basic", "uri reference", "unspecified"], attr.name_format)
-        ])
+      app.attribute_statements == null ? true : alltrue([
+        for attr in app.attribute_statements :
+        contains(["user", "group"], attr.type) &&
+        contains(["basic", "uri reference", "unspecified"], attr.name_format)
+      ])
     ])
     error_message = <<EOT
 Validation errors:
