@@ -27,66 +27,16 @@ variable "private_key" {
   sensitive   = true
 }
 
-variable "label" {
+variable "name" {
   description = "Application label"
   type        = string
 }
 
-variable "logo" {
-  description = "Logo URL"
-  type        = string
-}
-
-
-variable "sso_url" {
-  description = "SSO URL"
-  type        = string
-}
-
-variable "audience" {
-  description = "Audience URI"
-  type        = string
-}
-variable "recipient" {
-  description = "Recipient URL"
-  type        = string
-  default     = null
-}
-variable "destination" {
-  description = "Destination URL"
-  type        = string
-  default     = null
-}
-
-variable "accessibility_error_redirect_url" {
-  description = "Custom error page URL"
-  type        = string
-  default     = null
-}
-
-variable "accessibility_login_redirect_url" {
-  description = "Custom login redirect URL"
-  type        = string
-  default     = null
-}
-
-variable "accessibility_self_service" {
-  description = "Enable self-service"
-  type        = bool
-  default     = false
-}
-
-variable "acs_endpoints" {
-  description = "List of ACS endpoints"
-  type        = list(string)
-  default     = []
-}
-
 variable "admin_note" {
   type = object({
-    saas_mgmt_name = string
+    saas_mgmt_name  = string
     accounting_name = string
-    sso_enforced   = bool
+    sso_enforced    = bool
     lifecycle_automations = object({
       provisioning = object({
         type = string
@@ -109,36 +59,36 @@ variable "admin_note" {
 
   validation {
     condition = alltrue([
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      contains(["SCIM", "HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
       var.admin_note.lifecycle_automations.provisioning.type),
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      contains(["SCIM", "HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
       var.admin_note.lifecycle_automations.user_updates.type),
-      contains(["SCIM", "ADP", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      contains(["SCIM", "HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
       var.admin_note.lifecycle_automations.deprovisioning.type)
     ])
-    error_message = "Lifecycle automation methods must be one of: SCIM, ADP, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+    error_message = "Lifecycle automation methods must be one of: SCIM, HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
   }
 
   validation {
     condition = alltrue([
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) || var.admin_note.lifecycle_automations.provisioning.link == "",
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) || var.admin_note.lifecycle_automations.user_updates.link == "",
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) || var.admin_note.lifecycle_automations.deprovisioning.link == ""
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.provisioning.type)) || 
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) || 
+        var.admin_note.lifecycle_automations.provisioning.link == "",
+        
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.user_updates.type)) || 
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) || 
+        var.admin_note.lifecycle_automations.user_updates.link == "",
+        
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.deprovisioning.type)) || 
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) || 
+        var.admin_note.lifecycle_automations.deprovisioning.link == ""
     ])
-    error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty."
+    error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
   }
 
   validation {
     condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
     error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
-  }
-
-  validation {
-    condition = alltrue([
-      for link in var.admin_note.automation_links :
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", link))
-    ])
-    error_message = "Automation links must be valid URLs starting with http://, https://, or www."
   }
 
   validation {
@@ -155,221 +105,97 @@ variable "admin_note" {
   }
 }
 
-variable "assertion_signed" {
-  description = "Whether SAML assertions are signed"
-  type        = bool
-  default     = true
-}
+variable "saml_app_settings" {
+  description = "List of SAML application configuration objects"
+  type = object({
+    // Required basic settings
+    sso_url  = string
+    audience = string
+    logo     = string
 
-variable "authn_context_class_ref" {
-  description = "Authentication context class reference"
-  type        = string
-  default     = "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport"
-}
+    // Optional basic settings
+    label             = optional(string, null)
+    preconfigured_app = optional(string, null)
+    recipient         = optional(string, null)
+    destination       = optional(string, null)
 
-variable "auto_submit_toolbar" {
-  description = "Display auto-submit toolbar"
-  type        = bool
-  default     = false
-}
+    // Accessibility settings
+    accessibility_error_redirect_url = optional(string, null)
+    accessibility_login_redirect_url = optional(string, null)
+    accessibility_self_service       = optional(bool, false)
+    auto_submit_toolbar              = optional(bool, false)
+    hide_ios                         = optional(bool, false)
+    hide_web                         = optional(bool, false)
+    default_relay_state              = optional(string, null)
 
-variable "default_relay_state" {
-  description = "Default relay state"
-  type        = string
-  default     = null
-}
+    // Endpoint settings
+    acs_endpoints             = optional(list(string), [])
+    single_logout_certificate = optional(string, null)
+    single_logout_issuer      = optional(string, null)
+    single_logout_url         = optional(string, null)
 
-variable "digest_algorithm" {
-  description = "Digest algorithm"
-  type        = string
-  default     = "SHA256"
-}
+    // SAML protocol settings
+    assertion_signed            = optional(bool, true)
+    authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
+    digest_algorithm            = optional(string, "SHA256")
+    honor_force_authn           = optional(bool, true)
+    idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
+    request_compressed          = optional(bool, null)
+    response_signed             = optional(bool, true)
+    saml_signed_request_enabled = optional(bool, false)
+    saml_version                = optional(string, "2.0")
+    signature_algorithm         = optional(string, "RSA_SHA256")
+    sp_issuer                   = optional(string, null)
+    subject_name_id_format      = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+    subject_name_id_template    = optional(string, "$${user.userName}")
 
-variable "enduser_note" {
-  description = "End user notes"
-  type        = string
-  default     = null
-}
+    // Certificate settings
+    key_name        = optional(string, null)
+    key_years_valid = optional(number, null)
 
-variable "hide_ios" {
-  description = "Hide on iOS"
-  type        = bool
-  default     = false
-}
+    // User management settings
+    user_name_template             = optional(string, "$${source.login}")
+    user_name_template_push_status = optional(string, null)
+    user_name_template_suffix      = optional(string, null)
+    user_name_template_type        = optional(string, "BUILT_IN")
+    inline_hook_id                 = optional(string, null)
 
-variable "hide_web" {
-  description = "Hide on web"
-  type        = bool
-  default     = false
-}
+    // Application settings
+    status              = optional(string, "ACTIVE")
+    enduser_note        = optional(string, null)
+    implicit_assignment = optional(bool, false)
 
-variable "honor_force_authn" {
-  description = "Honor ForceAuthn"
-  type        = bool
-  default     = true
-}
-
-variable "idp_issuer" {
-  description = "IdP issuer URL"
-  type        = string
-  default     = "http://www.okta.com/$${org.externalKey}"
-}
-
-variable "implicit_assignment" {
-  description = "Implicit assignment"
-  type        = bool
-  default     = false
-}
-
-variable "inline_hook_id" {
-  description = "Inline hook ID"
-  type        = string
-  default     = null
-}
-
-variable "key_name" {
-  description = "Key name"
-  type        = string
-  default     = null
-}
-
-variable "key_years_valid" {
-  description = "Key validity years"
-  type        = number
-  default     = null
-}
-
-variable "preconfigured_app" {
-  description = "Preconfigured application ID"
-  type        = string
-  default     = null
-}
-
-
-
-variable "request_compressed" {
-  description = "Request compressed"
-  type        = bool
-  default     = null
-}
-
-variable "response_signed" {
-  description = "Response signed"
-  type        = bool
-  default     = true
-}
-
-variable "saml_signed_request_enabled" {
-  description = "SAML signed request enabled"
-  type        = bool
-  default     = false
-}
-
-variable "saml_version" {
-  description = "SAML version"
-  type        = string
-  default     = "2.0"
-}
-
-variable "signature_algorithm" {
-  description = "Signature algorithm"
-  type        = string
-  default     = "RSA_SHA256"
-}
-
-variable "single_logout_certificate" {
-  description = "Single logout certificate"
-  type        = string
-  default     = null
-}
-
-variable "single_logout_issuer" {
-  description = "Single logout issuer"
-  type        = string
-  default     = null
-}
-
-variable "single_logout_url" {
-  description = "Single logout URL"
-  type        = string
-  default     = null
-}
-
-variable "sp_issuer" {
-  description = "SP issuer"
-  type        = string
-  default     = null
-}
-
-variable "status" {
-  description = "Application status"
-  type        = string
-  default     = "ACTIVE"
-}
-
-variable "subject_name_id_format" {
-  description = "Subject name ID format"
-  type        = string
-  default     = "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"
-}
-
-variable "subject_name_id_template" {
-  description = "Subject name ID template"
-  type        = string
-  default     = "$${user.userName}"
-}
-
-variable "user_name_template" {
-  description = "Username template"
-  type        = string
-  default     = "$${source.login}"
-}
-
-variable "user_name_template_push_status" {
-  description = "Username template push status"
-  type        = string
-  default     = null
-}
-
-variable "user_name_template_suffix" {
-  description = "Username template suffix"
-  type        = string
-  default     = null
-}
-
-variable "user_name_template_type" {
-  description = "Username template type"
-  type        = string
-  default     = "BUILT_IN"
-}
-
-variable "attribute_statements" {
-  description = "List of Objects containing, type (user or group), name, formation, filter_value for group attributes that is a regex, "
-  type = list(object({
-    type         = string
-    name         = string
-    name_format  = optional(string, "unspecified")
-    filter_value = optional(string, null)
-    values       = optional(list(string), [])
-  }))
-  default = null
+    // Attribute statements
+    attribute_statements = optional(list(object({
+      type         = string
+      name         = string
+      name_format  = optional(string, "unspecified")
+      filter_value = optional(string, null)
+      values       = optional(list(string), [])
+    })), null)
+  })
 
   validation {
-    condition = var.attribute_statements == null ? true : alltrue([
-      for attr in var.attribute_statements :
+    condition = var.saml_app_settings.sso_url != null && var.saml_app_settings.audience != null
+    error_message = "SSO URL and Audience are required fields for SAML applications."
+  }
+
+  validation {
+    condition = var.saml_app_settings.attribute_statements == null ? true : alltrue([
+      for attr in var.saml_app_settings.attribute_statements :
       (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
       (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
     ])
     error_message = <<EOT
 Invalid configuration:
 - attribute_statements with "user" types must have non-empty "values" and no filter_value
-- attribute_statements with "group"types must have "filter_value" and no "values"
+- attribute_statements with "group" types must have "filter_value" and no "values"
 EOT
   }
 
   validation {
-    condition = var.attribute_statements == null ? true : alltrue([
-      for attr in var.attribute_statements :
+    condition = var.saml_app_settings.attribute_statements == null ? true : alltrue([
+      for attr in var.saml_app_settings.attribute_statements :
       contains(["user", "group"], attr.type) &&
       contains(["basic", "uri reference", "unspecified"], attr.name_format)
     ])
@@ -379,7 +205,6 @@ Validation errors:
 - attribute_statements name_format must be 'basic', 'uri reference', or 'unspecified'
 EOT
   }
-
 }
 
 variable "authentication_policy_rules" {

@@ -9,6 +9,9 @@
 .terraform/
 .terraform.lock.hcl
 
+#Terraform Test Files
+*.tftest.hcl
+
 # Crash logs
 crash.log
 *.log
@@ -28,3 +31,7 @@ Thumbs.db
 *.swp
 *.swo
 *.bak
+
+#environments
+/environments*
+/examples*
