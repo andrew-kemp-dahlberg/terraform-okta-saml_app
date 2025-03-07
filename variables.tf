@@ -71,11 +71,19 @@ variable "admin_note" {
 
   validation {
     condition = alltrue([
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) || var.admin_note.lifecycle_automations.provisioning.link == "",
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) || var.admin_note.lifecycle_automations.user_updates.link == "",
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) || var.admin_note.lifecycle_automations.deprovisioning.link == ""
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.provisioning.type)) || 
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) || 
+        var.admin_note.lifecycle_automations.provisioning.link == "",
+        
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.user_updates.type)) || 
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) || 
+        var.admin_note.lifecycle_automations.user_updates.link == "",
+        
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.deprovisioning.type)) || 
+        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) || 
+        var.admin_note.lifecycle_automations.deprovisioning.link == ""
     ])
-    error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty."
+    error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
   }
 
   validation {

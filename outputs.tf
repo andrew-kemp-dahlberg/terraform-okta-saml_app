@@ -47,7 +47,6 @@ output "admin_note_details" {
     }
     last_audit_date = var.admin_note.last_access_audit_date
   }
-  sensitive = true
 }
 
 output "authentication_policy_info" {

@@ -231,6 +231,7 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
 
 
 locals {
+  saml_label = var.saml_app_settings.label == null ? var.name : var.saml_app_settings.label
   recipient   = var.saml_app_settings.recipient == null ? var.saml_app_settings.sso_url : var.saml_app_settings.recipient
   destination = var.saml_app_settings.destination == null ? var.saml_app_settings.sso_url : var.saml_app_settings.destination
 
@@ -297,7 +298,7 @@ resource "okta_app_saml" "saml_app" {
   inline_hook_id                   = var.saml_app_settings.inline_hook_id
   key_name                         = var.saml_app_settings.key_name
   key_years_valid                  = var.saml_app_settings.key_years_valid
-  label                            = var.saml_app_settings.label
+  label                            = local.saml_label
   logo                             = var.saml_app_settings.logo
   preconfigured_app                = var.saml_app_settings.preconfigured_app
   recipient                        = local.recipient
