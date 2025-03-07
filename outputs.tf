@@ -27,9 +27,9 @@ output "app_metadata" {
 output "app_settings" {
   description = "SAML application settings"
   value = {
-    sso_url        = var.saml_app_settings.sso_url
-    audience       = var.saml_app_settings.audience
-    subject_format = var.saml_app_settings.subject_name_id_format
+    sso_url        = var.saml_app.sso_url
+    audience       = var.saml_app.audience
+    subject_format = var.saml_app.subject_name_id_format
   }
 }
 
