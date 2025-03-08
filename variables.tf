@@ -1,30 +1,16 @@
 # variables.tf
-variable "client_id" {
-  description = "Okta Client ID"
-  type        = string
-  sensitive   = true
-}
+variable "environment" {
+  description = "Information to authenticate with Okta Provider"
+  type        = object({
+    org_name = string
+    base_url = string
+    client_id = string
+    private_key_id = string
+    private_key = string
+    scopes = string
 
-variable "org_name" {
-  description = "Okta org name ie. company"
-  type        = string
-}
-
-variable "base_url" {
-  description = "Okta Base URL ie. okta.com"
-  type        = string
-}
-
-variable "private_key_id" {
-  description = "Okta Oauth private key id"
-  type        = string
-  sensitive   = true
-}
-
-variable "private_key" {
-  description = "Okta Oauth private key"
-  type        = string
-  sensitive   = true
+  })
+  
 }
 
 variable "name" {
