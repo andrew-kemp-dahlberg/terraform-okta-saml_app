@@ -165,7 +165,6 @@ variable "saml_app" {
     })), [])
     group_attribute_statements = optional(object({
       name         = string
-      filter_value = string
     }), null)
   })
 
@@ -179,7 +178,7 @@ variable "saml_app" {
       var.saml_app.user_attribute_statements == null ? true : alltrue([
         for attr in var.saml_app.user_attribute_statements :
         attr.name != null &&
-        contains(["basic", "uri reference", "scim", "scim enterprise", "scim group", "unspecified"],
+        contains(["basic", "uri reference", "scim", "scim enterprise", "unspecified"],
         coalesce(attr.name_format, "unspecified"))
       ])
     ) : true
