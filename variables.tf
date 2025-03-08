@@ -7,7 +7,12 @@ variable "environment" {
     client_id = string
     private_key_id = string
     private_key = string
-    scopes = string
+    device_assurance_policy_ids = object({
+      Mac     = optional(string)
+      Windows = optional(string)
+      iOS     = optional(string)
+      Android = optional(string)
+    })
   })
   sensitive = true
   
@@ -93,6 +98,7 @@ variable "admin_note" {
 
 variable "saml_app" {
   description = "List of SAML application configuration objects"
+  default = null
   type = object({
     // Required basic settings
     sso_url  = string
@@ -152,44 +158,69 @@ variable "saml_app" {
     implicit_assignment = optional(bool, false)
 
     // Attribute statements
-    attribute_statements = optional(list(object({
-      type         = string
+    user_attribute_statements = optional(list(object({
       name         = string
       name_format  = optional(string, "unspecified")
-      filter_value = optional(string, null)
-      values       = optional(list(string), [])
+      values       = list(string)
     })), null)
+    group_attribute_statements = optional(list(object({
+      name         = string
+      filter_value = string
+    })))
   })
 
   validation {
-    condition = var.saml_app.sso_url != null && var.saml_app.audience != null
-    error_message = "SSO URL and Audience are required fields for SAML applications."
+    condition = var.saml_app != null ? (var.saml_app.sso_url != null && var.saml_app.audience != null && var.saml_app.logo != null) : true
+    error_message = "SSO URL, Audience, and Logo are required fields for SAML applications."
   }
 
   validation {
-    condition = var.saml_app.attribute_statements == null ? true : alltrue([
-      for attr in var.saml_app.attribute_statements :
-      (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
-      (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
-    ])
-    error_message = <<EOT
-Invalid configuration:
-- attribute_statements with "user" types must have non-empty "values" and no filter_value
-- attribute_statements with "group" types must have "filter_value" and no "values"
-EOT
+    condition = var.saml_app != null ? (
+      var.saml_app.user_attribute_statements == null ? true : alltrue([
+        for attr in var.saml_app.user_attribute_statements :
+        attr.name != null &&
+        contains(["basic", "uri reference", "scim", "scim enterprise", "scim group", "unspecified"], 
+                coalesce(attr.name_format, "unspecified"))
+      ])
+    ) : true
+    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group', or 'unspecified'."
   }
 
   validation {
-    condition = var.saml_app.attribute_statements == null ? true : alltrue([
-      for attr in var.saml_app.attribute_statements :
-      contains(["user", "group"], attr.type) &&
-      contains(["basic", "uri reference", "scim", "scim enterprise", "scim group", "unspecified"], attr.name_format)
-    ])
-    error_message = <<EOT
-Validation errors:
-- Each object in attribute_statements Type must be 'user' or 'group'
-- attribute_statements name_format must be 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group' or 'unspecified'
-EOT
+    condition = var.saml_app != null ? (
+      var.saml_app.group_attribute_statements == null ? true : alltrue([
+        for attr in var.saml_app.group_attribute_statements : attr.name != null
+      ])
+    ) : true
+    error_message = "Each group_attribute_statements object must have a name."
+  }
+
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.status == null ? true : contains(["ACTIVE", "INACTIVE"], var.saml_app.status)
+    ) : true
+    error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
+  }
+  
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.digest_algorithm == null ? true : contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm)
+    ) : true
+    error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
+  }
+  
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.signature_algorithm == null ? true : contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm)
+    ) : true
+    error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
+  }
+  
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.user_name_template_type == null ? true : contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type)
+    ) : true
+    error_message = "User name template type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
   }
 }
 
@@ -243,16 +274,6 @@ variable "admin_role" {
   default     = {}
 }
 
-variable "device_assurance_policy_ids" {
-  description = "Device assurance policies for Mac, iOS, Windows and Android"
-  type = object({
-    Mac     = optional(string)
-    Windows = optional(string)
-    iOS     = optional(string)
-    Android = optional(string)
-  })
-  default = {}
-}
 
 
 
