@@ -1,30 +1,21 @@
 # variables.tf
-variable "client_id" {
-  description = "Okta Client ID"
-  type        = string
-  sensitive   = true
-}
+variable "environment" {
+  description = "Information to authenticate with Okta Provider"
+  type = object({
+    org_name       = string
+    base_url       = string
+    client_id      = string
+    private_key_id = string
+    private_key    = string
+    device_assurance_policy_ids = object({
+      Mac     = optional(string)
+      Windows = optional(string)
+      iOS     = optional(string)
+      Android = optional(string)
+    })
+  })
+  sensitive = true
 
-variable "org_name" {
-  description = "Okta org name ie. company"
-  type        = string
-}
-
-variable "base_url" {
-  description = "Okta Base URL ie. okta.com"
-  type        = string
-}
-
-variable "private_key_id" {
-  description = "Okta Oauth private key id"
-  type        = string
-  sensitive   = true
-}
-
-variable "private_key" {
-  description = "Okta Oauth private key"
-  type        = string
-  sensitive   = true
 }
 
 variable "name" {
@@ -71,17 +62,17 @@ variable "admin_note" {
 
   validation {
     condition = alltrue([
-      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.provisioning.type)) || 
-        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) || 
-        var.admin_note.lifecycle_automations.provisioning.link == "",
-        
-      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.user_updates.type)) || 
-        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) || 
-        var.admin_note.lifecycle_automations.user_updates.link == "",
-        
-      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.deprovisioning.type)) || 
-        can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) || 
-        var.admin_note.lifecycle_automations.deprovisioning.link == ""
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.provisioning.type)) ||
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) ||
+      var.admin_note.lifecycle_automations.provisioning.link == "",
+
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.user_updates.type)) ||
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) ||
+      var.admin_note.lifecycle_automations.user_updates.link == "",
+
+      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.deprovisioning.type)) ||
+      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) ||
+      var.admin_note.lifecycle_automations.deprovisioning.link == ""
     ])
     error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
   }
@@ -107,6 +98,7 @@ variable "admin_note" {
 
 variable "saml_app" {
   description = "List of SAML application configuration objects"
+  default     = null
   type = object({
     // Required basic settings
     sso_url  = string
@@ -166,44 +158,69 @@ variable "saml_app" {
     implicit_assignment = optional(bool, false)
 
     // Attribute statements
-    attribute_statements = optional(list(object({
-      type         = string
+    user_attribute_statements = optional(list(object({
+      name        = string
+      name_format = optional(string, "unspecified")
+      values      = list(string)
+    })), [])
+    group_attribute_statements = optional(object({
       name         = string
-      name_format  = optional(string, "unspecified")
-      filter_value = optional(string, null)
-      values       = optional(list(string), [])
-    })), null)
+      filter_value = string
+    }), null)
   })
 
   validation {
-    condition = var.saml_app.sso_url != null && var.saml_app.audience != null
-    error_message = "SSO URL and Audience are required fields for SAML applications."
+    condition     = var.saml_app != null ? (var.saml_app.sso_url != null && var.saml_app.audience != null && var.saml_app.logo != null) : true
+    error_message = "SSO URL, Audience, and Logo are required fields for SAML applications."
   }
 
   validation {
-    condition = var.saml_app.attribute_statements == null ? true : alltrue([
-      for attr in var.saml_app.attribute_statements :
-      (attr.type == "user" && attr.values != null && length(attr.values) > 0 && attr.filter_value == null) ||
-      (attr.type == "group" && attr.filter_value != null && (attr.values == null || length(attr.values) == 0))
-    ])
-    error_message = <<EOT
-Invalid configuration:
-- attribute_statements with "user" types must have non-empty "values" and no filter_value
-- attribute_statements with "group" types must have "filter_value" and no "values"
-EOT
+    condition = var.saml_app != null ? (
+      var.saml_app.user_attribute_statements == null ? true : alltrue([
+        for attr in var.saml_app.user_attribute_statements :
+        attr.name != null &&
+        contains(["basic", "uri reference", "scim", "scim enterprise", "scim group", "unspecified"],
+        coalesce(attr.name_format, "unspecified"))
+      ])
+    ) : true
+    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group', or 'unspecified'."
   }
 
   validation {
-    condition = var.saml_app.attribute_statements == null ? true : alltrue([
-      for attr in var.saml_app.attribute_statements :
-      contains(["user", "group"], attr.type) &&
-      contains(["basic", "uri reference", "scim", "scim enterprise", "scim group", "unspecified"], attr.name_format)
-    ])
-    error_message = <<EOT
-Validation errors:
-- Each object in attribute_statements Type must be 'user' or 'group'
-- attribute_statements name_format must be 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group' or 'unspecified'
-EOT
+    condition = var.saml_app != null ? (
+      var.saml_app.group_attribute_statements == null ? true : alltrue([
+        for attr in var.saml_app.group_attribute_statements : attr.name != null
+      ])
+    ) : true
+    error_message = "Each group_attribute_statements object must have a name."
+  }
+
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.status == null ? true : contains(["ACTIVE", "INACTIVE"], var.saml_app.status)
+    ) : true
+    error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
+  }
+
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.digest_algorithm == null ? true : contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm)
+    ) : true
+    error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
+  }
+
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.signature_algorithm == null ? true : contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm)
+    ) : true
+    error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
+  }
+
+  validation {
+    condition = var.saml_app != null ? (
+      var.saml_app.user_name_template_type == null ? true : contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type)
+    ) : true
+    error_message = "User name template type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
   }
 }
 
@@ -242,31 +259,33 @@ variable "authentication_policy_rules" {
 variable "roles" {
   description = "Creates assignments based on groups that can then be assigned to users."
   type = list(object({
-    role    = string
-    profile = map(any)
+    role                = string
+    attribute_statement = optional(bool, false)
+    claim               = optional(bool, false)
+    profile             = map(any)
   }))
   default = [{
-    role    = "assignment"
-    profile = {}
+    role                = "assignment"
+    profile             = {}
+    attribute_statement = false
+    claim               = false
   }]
 }
 
 variable "admin_role" {
   description = "Creates the role specifically for super admin. Just enter the map for the assignment for the assignment"
-  type        = map(any)
-  default     = {}
+  type = object({
+    attribute_statement = optional(bool, false)
+    claim               = optional(bool, false)
+    profile             = map(any)
+  })
+  default = {
+    profile             = {}
+    attribute_statement = false
+    claim               = false
+  }
 }
 
-variable "device_assurance_policy_ids" {
-  description = "Device assurance policies for Mac, iOS, Windows and Android"
-  type = object({
-    Mac     = optional(string)
-    Windows = optional(string)
-    iOS     = optional(string)
-    Android = optional(string)
-  })
-  default = {}
-}
 
 
 
