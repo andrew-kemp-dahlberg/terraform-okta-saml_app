@@ -8,8 +8,8 @@ variable "environment" {
     private_key_id = string
     private_key = string
     scopes = string
-
   })
+  sensitive = true
   
 }
 
