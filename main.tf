@@ -1,4 +1,5 @@
 locals {
+  admin_group_description = var.admin_role == {} ? "Group for ${var.name} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.name} super admins. Privileges are automatically assigned from this group"
   roles = concat(
     var.admin_role != {} ? [{
       role    = "Super Admin"
@@ -33,6 +34,7 @@ locals {
     local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
     local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
   )]
+
 }
 
 resource "okta_group" "assignment_groups" {
@@ -42,9 +44,6 @@ resource "okta_group" "assignment_groups" {
   custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
 }
 
-locals {
-  admin_group_description = var.admin_role == {} ? "Group for ${var.name} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.name} super admins. Privileges are automatically assigned from this group"
-}
 
 locals {
   policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.name}. It is the default policy set by Terraform." : "Authentication Policy for ${var.name}. It is a custom policy set through the terraform app module"
@@ -75,7 +74,7 @@ locals {
 
 
   default_auth_rules = [
-    # Rule 1: Super Admin Authentication Policy Rule (not shown in your example but mentioned earlier)
+    # Rule 1: Super Admin Authentication Policy Rule 
     {
       name                        = "Super Admin Authentication Policy Rule"
       access                      = "ALLOW"
@@ -231,38 +230,26 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
 
 
 locals {
-  saml_label = var.saml_app.label == null ? var.name : var.saml_app.label
+  saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
   recipient   = var.saml_app.recipient == null ? var.saml_app.sso_url : var.saml_app.recipient
   destination = var.saml_app.destination == null ? var.saml_app.sso_url : var.saml_app.destination
 
-  attribute_statements = var.saml_app.attribute_statements == null ? null : [
-    for attr in var.saml_app.attribute_statements : {
+  user_attribute_statements = var.saml_app.user_attribute_statements == null ? null : [
+    for attr in var.saml_app.user_attribute_statements : {
+      type = "user"
       name = attr.name
       namespace = lookup({
         "basic"           = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
         "uri reference"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
         "unspecified"     = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-        "scim"            =  attr.type == "user" ? "urn:ietf:params:scim:schemas:core:2.0:User" : "urn:ietf:params:scim:schemas:core:2.0:Group"
+        "scim"            = "urn:ietf:params:scim:schemas:core:2.0:User"
         "scim enterprise" = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-      type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
-      filter_type  = attr.type == "group" ? "REGEX" : null
-      filter_value = attr.type == "group" ? attr.filter_value : null
-      values       = attr.type == "user" ? attr.values : []
+      values = attr.values
     }
   ]
-  attribute_statements_clean = [
-    for attr in coalesce(local.attribute_statements, []) : { #local.attribute_statements may need to go back to var.attribute statements. requires testing
-      for key, value in {
-        name         = attr.name
-        type         = attr.type
-        values       = attr.values
-        filter_type  = attr.filter_type
-        filter_value = attr.filter_value
-        namespace    = attr.namespace
-      } : key => value if value != null
-    }
-  ]
+
+
 
   admin_note = {
     name = var.admin_note.saas_mgmt_name
@@ -321,9 +308,8 @@ resource "okta_app_saml" "saml_app" {
   user_name_template_push_status   = var.saml_app.user_name_template_push_status
   user_name_template_suffix        = var.saml_app.user_name_template_suffix
   user_name_template_type          = var.saml_app.user_name_template_type
-
   dynamic "attribute_statements" {
-    for_each = local.attribute_statements_clean
+    for_each = local.user_attribute_statements
     content {
       name         = attribute_statements.value.name
       type         = attribute_statements.value.type
@@ -334,6 +320,42 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 }
+
+locals {
+  group_attributes_exist = var.saml_app.group_attribute_statements > 0 ? 1 : 0
+
+  group_attribute_statements = var.saml_app.group_attribute_statements == null ? null : [
+  for attr in var.saml_app.attribute_statements : {
+    name = attr.name
+    ##### comments are for future namespace requirements. Unsure if they are supported
+    # namespace = lookup({
+    #   "basic"           = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+    #   "uri reference"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+    #   "unspecified"     = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+    #   "scim"            =  "urn:ietf:params:scim:schemas:core:2.0:Group"
+    # }, attr.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+    type         = attr.type == "user" ? "EXPRESSION" : "GROUP"
+    filter_type  = "REGEX"
+    filter_value = attr.filter_value
+  }
+  ]
+
+#   attribute_statements_clean = [
+#     for attr in coalesce(local.attribute_statements, []) : { 
+#       for key, value in {
+#         name         = attr.name
+#         type         = attr.type
+#         values       = attr.values
+#         filter_type  = attr.filter_type
+#         filter_value = attr.filter_value
+#         namespace    = attr.namespace
+#       } : key => value if value != null
+#     }
+#   ]
+}
+
+
+
 
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
