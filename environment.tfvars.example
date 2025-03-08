@@ -1,4 +1,4 @@
-environtment = {
+environment = {
     org_name = "example"
     base_url = "okta.com"
     client_id = "client id"
