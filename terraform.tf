@@ -2,7 +2,7 @@ terraform {
   required_providers {
     okta = {
       source  = "okta/okta"
-      version = "~< 4.13.1"
+      version = "~> 4.15.0"
     }
   }
 }
