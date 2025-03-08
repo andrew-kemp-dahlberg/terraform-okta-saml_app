@@ -164,7 +164,7 @@ variable "saml_app" {
       values      = list(string)
     })), [])
     group_attribute_statements = optional(object({
-      name         = string
+      name = string
     }), null)
   })
 
@@ -183,15 +183,6 @@ variable "saml_app" {
       ])
     ) : true
     error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group', or 'unspecified'."
-  }
-
-  validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.group_attribute_statements == null ? true : alltrue([
-        for attr in var.saml_app.group_attribute_statements : attr.name != null
-      ])
-    ) : true
-    error_message = "Each group_attribute_statements object must have a name."
   }
 
   validation {
@@ -258,13 +249,13 @@ variable "authentication_policy_rules" {
 variable "roles" {
   description = "Creates assignments based on groups that can then be assigned to users."
   type = list(object({
-    role                = string
+    name                = string
     attribute_statement = optional(bool, false)
     claim               = optional(bool, false)
     profile             = map(any)
   }))
   default = [{
-    role                = "assignment"
+    name                = "assignment"
     profile             = {}
     attribute_statement = false
     claim               = false

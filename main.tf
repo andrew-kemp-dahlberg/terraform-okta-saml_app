@@ -323,45 +323,45 @@ resource "okta_app_saml" "saml_app" {
 locals {
   # Check if group attribute statement exists
   group_attribute_exists = local.group_attribute_statements != null ? 1 : 0
-  
+
   # Format the group attribute statements as a list of objects
 
-    # Find roles with claim = true
+  # Find roles with claim = true
   attribute_statement_roles = [
     for role in local.roles : role
     if role.attribute_statement == true
   ]
-  
+
   # Create a regex pattern matching any group name that corresponds to roles with claim = true
   # This pattern will match: APP-ROLE-APPNAME-ROLENAME where ROLENAME is any role with claim = true
   group_attribute_statements_regex = length(local.attribute_statement_roles) > 0 ? format(
     "^APP-ROLE-%s-(%s)$",
     upper(var.name),
-    join("|", [for role in local.attribute_statement_roles : upper(role.role)])
+    join("|", [for role in local.attribute_statement_roles : upper(role.name)])
   ) : "^$" # Empty regex if no claim roles exist
 
   group_attribute_statements = var.saml_app.group_attribute_statements != null ? jsonencode(
-    {attributeStatements = [
-    {
-      type         = "GROUP"
-      name         = var.saml_app.group_attribute_statements.name
-      namespace    = lookup({
-        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-        "scim"          = "urn:ietf:params:scim:schemas:core:2.0:Group"
-      }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-      filterType    = "REGEX"
-      filterValue   = local.group_attribute_statements_regex
-    }
-  ] }): null
+    { attributeStatements = [
+      {
+        type = "GROUP"
+        name = var.saml_app.group_attribute_statements.name
+        namespace = lookup({
+          "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+          "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+          "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
+          "scim"          = "urn:ietf:params:scim:schemas:core:2.0:Group"
+        }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+        filterType  = "REGEX"
+        filterValue = local.group_attribute_statements_regex
+      }
+  ] }) : null
 
 }
 
 
 resource "okta_app_saml_app_settings" "group_attribute_statements" {
-  count  = local.group_attribute_exists
-  app_id = okta_app_saml.saml_app.id
+  count    = local.group_attribute_exists
+  app_id   = okta_app_saml.saml_app.id
   settings = jsonencode(local.group_attribute_statements)
 }
 
