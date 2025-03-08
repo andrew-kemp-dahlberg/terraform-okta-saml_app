@@ -3,7 +3,7 @@ environtment = {
     base_url = "okta.com"
     client_id = "client id"
     private_key_id  = "private key id"
-    private_key = <<EOT 
+    private_key = <<EOT
     -----BEGIN PRIVATE KEY-----
     private key data
     -----END PRIVATE KEY -----
