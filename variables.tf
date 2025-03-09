@@ -104,10 +104,11 @@ variable "saml_app" {
     sso_url  = string
     audience = string
     logo     = string
-
-    // Optional basic settings
     label             = optional(string, null)
     preconfigured_app = optional(string, null)
+
+    // Optional basic settings
+
     recipient         = optional(string, null)
     destination       = optional(string, null)
 
@@ -166,11 +167,18 @@ variable "saml_app" {
     group_attribute_statements = optional(object({
       name = string
     }), null)
-  })
-
+  
+    // Custom settings
+    custom_settings = optional(map(any),null)
+})
   validation {
-    condition     = var.saml_app != null ? (var.saml_app.sso_url != null && var.saml_app.audience != null && var.saml_app.logo != null) : true
-    error_message = "SSO URL, Audience, and Logo are required fields for SAML applications."
+    condition     = var.saml_app != null ? (var.saml_app.sso_url != null && var.saml_app.audience != null) : true
+    error_message = "SSO URL, and Audience are required fields for SAML applications."
+  }
+
+validation {
+    condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.logo != null) : true
+    error_message = "Either preconfigured_app or logo must be provided for the SAML application."
   }
 
   validation {
@@ -182,7 +190,7 @@ variable "saml_app" {
         coalesce(attr.name_format, "unspecified"))
       ])
     ) : true
-    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group', or 'unspecified'."
+    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', or 'unspecified'."
   }
 
   validation {
