@@ -233,10 +233,24 @@ resource "okta_app_signon_policy_rule" "auth_policy_rules" {
 
 
 locals {
+  //Basic App Settings to get right. 
   saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
-  recipient   = var.saml_app.recipient == null ? var.saml_app.sso_url : var.saml_app.recipient
-  destination = var.saml_app.destination == null ? var.saml_app.sso_url : var.saml_app.destination
+  recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
+  destination = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
 
+  //Condensed Admin Note         
+  admin_note = {
+  name = var.admin_note.saas_mgmt_name
+  sso  = var.admin_note.sso_enforced
+  auto = distinct([
+    var.admin_note.lifecycle_automations.provisioning.type,
+    var.admin_note.lifecycle_automations.user_updates.type,
+    var.admin_note.lifecycle_automations.deprovisioning.type
+  ])
+  owner = var.admin_note.app_owner
+  audit = var.admin_note.last_access_audit_date
+}
+  //Formatting user attribute statements from saml_app variable
   user_attribute_statements = var.saml_app.user_attribute_statements == null ? null : [
     for attr in var.saml_app.user_attribute_statements : {
       type = "EXPRESSION"
@@ -245,27 +259,59 @@ locals {
         "basic"           = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
         "uri reference"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
         "unspecified"     = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-        # "scim"            = "urn:ietf:params:scim:schemas:core:2.0:User"
-        # "scim enterprise" = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
       values = attr.values
     }
   ]
 
-  admin_note = {
-    name = var.admin_note.saas_mgmt_name
-    sso  = var.admin_note.sso_enforced
-    auto = distinct([
-      var.admin_note.lifecycle_automations.provisioning.type,
-      var.admin_note.lifecycle_automations.user_updates.type,
-      var.admin_note.lifecycle_automations.deprovisioning.type
-    ])
-    owner = var.admin_note.app_owner
-    audit = var.admin_note.last_access_audit_date
+  //Formatting group attribute statements & adding filter based on groups that are flagged to be added.
+  group_attribute_exists = local.group_attribute_statements != null ? 1 : 0
+
+  attribute_statement_roles = [
+    for role in local.roles : role
+    if role.attribute_statement == true
+  ]
+  group_attribute_statements_regex = length(local.attribute_statement_roles) > 0 ? format(
+    "^APP-ROLE-%s-(%s)$",
+    upper(var.name),
+    join("|", [for role in local.attribute_statement_roles : upper(role.name)])
+  ) : "^$" 
+
+  group_attribute_statements = var.saml_app.group_attribute_statements != null ? jsonencode(
+    { attributeStatements = [
+      {
+        type = "GROUP"
+        name = var.saml_app.group_attribute_statements.name
+        namespace = lookup({
+          "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+          "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+          "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
+        }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+        filterType  = "REGEX"
+        filterValue = local.group_attribute_statements_regex
+      }
+  ] }) : null
+
+    // Combine user and group attribute statements with custom_settings var to be pushed through settings
+  attribute_statements_combined = {
+    attributeStatements = concat(
+      var.saml_app.user_attribute_statements != null ? local.user_attribute_statements : [],
+      var.saml_app.group_attribute_statements != null ? jsondecode(local.group_attribute_statements).attributeStatements : []
+    )
   }
+
+  attribute_statements_map = length(local.attribute_statements_combined.attributeStatements) > 0 ? {
+    attribute_statements = jsonencode(local.attribute_statements_combined)
+  } : {}
+
+  app_settings = merge(
+    var.saml_app.custom_settings != null ? var.saml_app.custom_settings : {},
+    local.attribute_statements_map
+  )
 }
 
 resource "okta_app_saml" "saml_app" {
+  app_settings_json                = jsondecode(local.app_settings)
   accessibility_error_redirect_url = var.saml_app.accessibility_error_redirect_url
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
   accessibility_self_service       = var.saml_app.accessibility_self_service
@@ -309,60 +355,6 @@ resource "okta_app_saml" "saml_app" {
   user_name_template_push_status   = var.saml_app.user_name_template_push_status
   user_name_template_suffix        = var.saml_app.user_name_template_suffix
   user_name_template_type          = var.saml_app.user_name_template_type
-  dynamic "attribute_statements" {
-    for_each = local.user_attribute_statements
-    content {
-      name      = attribute_statements.value.name
-      type      = attribute_statements.value.type
-      values    = attribute_statements.value.values
-      namespace = attribute_statements.value.namespace
-    }
-  }
-}
-
-locals {
-  # Check if group attribute statement exists
-  group_attribute_exists = local.group_attribute_statements != null ? 1 : 0
-
-  # Format the group attribute statements as a list of objects
-
-  # Find roles with claim = true
-  attribute_statement_roles = [
-    for role in local.roles : role
-    if role.attribute_statement == true
-  ]
-
-  # Create a regex pattern matching any group name that corresponds to roles with claim = true
-  # This pattern will match: APP-ROLE-APPNAME-ROLENAME where ROLENAME is any role with claim = true
-  group_attribute_statements_regex = length(local.attribute_statement_roles) > 0 ? format(
-    "^APP-ROLE-%s-(%s)$",
-    upper(var.name),
-    join("|", [for role in local.attribute_statement_roles : upper(role.name)])
-  ) : "^$" # Empty regex if no claim roles exist
-
-  group_attribute_statements = var.saml_app.group_attribute_statements != null ? jsonencode(
-    { attributeStatements = [
-      {
-        type = "GROUP"
-        name = var.saml_app.group_attribute_statements.name
-        namespace = lookup({
-          "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-          "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-          "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-          # "scim"          = "urn:ietf:params:scim:schemas:core:2.0:Group"
-        }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-        filterType  = "REGEX"
-        filterValue = local.group_attribute_statements_regex
-      }
-  ] }) : null
-
-}
-
-
-resource "okta_app_saml_app_settings" "group_attribute_statements" {
-  count    = local.group_attribute_exists
-  app_id   = okta_app_saml.saml_app.id
-  settings = jsonencode(local.group_attribute_statements)
 }
 
 
