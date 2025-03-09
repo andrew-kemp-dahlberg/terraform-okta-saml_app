@@ -3,7 +3,7 @@ locals {
   #### this is also used to gather regex for group attribute statements
   roles = concat(
     var.admin_role != {} ? [{
-      role                = "Super Admin"
+      name                = "Super Admin"
       attribute_statement = var.admin_role.attribute_statement
       claim               = var.admin_role.claim
       profile             = var.admin_role.profile
@@ -42,8 +42,8 @@ locals {
 
 resource "okta_group" "assignment_groups" {
   count                     = length(local.roles)
-  name                      = "APP-ROLE-${upper(var.name)}-${upper(local.roles[count.index].role)}"
-  description               = "Group assigns users to ${var.name} with the role of ${local.roles[count.index].role}"
+  name                      = "APP-ROLE-${upper(var.name)}-${upper(local.roles[count.index].name)}"
+  description               = "Group assigns users to ${var.name} with the role of ${local.roles[count.index].name}"
   custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
 }
 
@@ -245,8 +245,8 @@ locals {
         "basic"           = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
         "uri reference"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
         "unspecified"     = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
-        "scim"            = "urn:ietf:params:scim:schemas:core:2.0:User"
-        "scim enterprise" = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
+        # "scim"            = "urn:ietf:params:scim:schemas:core:2.0:User"
+        # "scim enterprise" = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User"
       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
       values = attr.values
     }
@@ -349,7 +349,7 @@ locals {
           "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
           "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
           "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-          "scim"          = "urn:ietf:params:scim:schemas:core:2.0:Group"
+          # "scim"          = "urn:ietf:params:scim:schemas:core:2.0:Group"
         }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
         filterType  = "REGEX"
         filterValue = local.group_attribute_statements_regex

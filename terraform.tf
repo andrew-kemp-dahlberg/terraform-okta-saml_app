@@ -2,7 +2,7 @@ terraform {
   required_providers {
     okta = {
       source  = "okta/okta"
-      version = "~> 4.15.0"
+      version = "~> 4.13.1"
     }
   }
 }
@@ -15,3 +15,4 @@ provider "okta" {
   private_key    = var.environment.private_key
   scopes         = ["okta.apps.manage", "okta.apps.read", "okta.groups.manage", "okta.groups.read", "okta.policies.manage", "okta.policies.read", "okta.profileMappings.manage", "okta.profileMappings.read"]
 }
+
