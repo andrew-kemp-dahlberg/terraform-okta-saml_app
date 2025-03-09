@@ -101,16 +101,16 @@ variable "saml_app" {
   default     = null
   type = object({
     // Required basic settings
-    sso_url  = string
-    audience = string
-    logo     = string
+    sso_url           = optional(string, null)
+    audience          = string
+    logo              = string
     label             = optional(string, null)
     preconfigured_app = optional(string, null)
 
     // Optional basic settings
 
-    recipient         = optional(string, null)
-    destination       = optional(string, null)
+    recipient   = optional(string, null)
+    destination = optional(string, null)
 
     // Accessibility settings
     accessibility_error_redirect_url = optional(string, null)
@@ -167,16 +167,16 @@ variable "saml_app" {
     group_attribute_statements = optional(object({
       name = string
     }), null)
-  
+
     // Custom settings
-    custom_settings = optional(map(any),null)
-})
+    custom_settings = optional(map(any), null)
+  })
   validation {
-    condition     = var.saml_app != null ? (var.saml_app.sso_url != null && var.saml_app.audience != null) : true
+    condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.sso_url != null && var.saml_app.audience != null) : true
     error_message = "SSO URL, and Audience are required fields for SAML applications."
   }
 
-validation {
+  validation {
     condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.logo != null) : true
     error_message = "Either preconfigured_app or logo must be provided for the SAML application."
   }
@@ -186,11 +186,11 @@ validation {
       var.saml_app.user_attribute_statements == null ? true : alltrue([
         for attr in var.saml_app.user_attribute_statements :
         attr.name != null &&
-        contains(["basic", "uri reference", "scim", "scim enterprise", "unspecified"],
+        contains(["basic", "uri reference", "unspecified"],
         coalesce(attr.name_format, "unspecified"))
       ])
     ) : true
-    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', or 'unspecified'."
+    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', or 'unspecified'."
   }
 
   validation {
