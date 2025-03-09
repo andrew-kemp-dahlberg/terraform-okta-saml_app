@@ -240,25 +240,25 @@ locals {
 
   //Condensed Admin Note         
   admin_note = {
-  name = var.admin_note.saas_mgmt_name
-  sso  = var.admin_note.sso_enforced
-  auto = distinct([
-    var.admin_note.lifecycle_automations.provisioning.type,
-    var.admin_note.lifecycle_automations.user_updates.type,
-    var.admin_note.lifecycle_automations.deprovisioning.type
-  ])
-  owner = var.admin_note.app_owner
-  audit = var.admin_note.last_access_audit_date
-}
+    name = var.admin_note.saas_mgmt_name
+    sso  = var.admin_note.sso_enforced
+    auto = distinct([
+      var.admin_note.lifecycle_automations.provisioning.type,
+      var.admin_note.lifecycle_automations.user_updates.type,
+      var.admin_note.lifecycle_automations.deprovisioning.type
+    ])
+    owner = var.admin_note.app_owner
+    audit = var.admin_note.last_access_audit_date
+  }
   //Formatting user attribute statements from saml_app variable
   user_attribute_statements = var.saml_app.user_attribute_statements == null ? null : [
     for attr in var.saml_app.user_attribute_statements : {
       type = "EXPRESSION"
       name = attr.name
       namespace = lookup({
-        "basic"           = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-        "uri reference"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-        "unspecified"     = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
+        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified"
       }, attr.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
       values = attr.values
     }
@@ -275,10 +275,10 @@ locals {
     "^APP-ROLE-%s-(%s)$",
     upper(var.name),
     join("|", [for role in local.attribute_statement_roles : upper(role.name)])
-  ) : "^$" 
+  ) : "^$"
 
-  group_attribute_statements = var.saml_app.group_attribute_statements != null ? jsonencode(
-    { attributeStatements = [
+  group_attribute_statements = var.saml_app.group_attribute_statements != null ? {
+    attributeStatements = [
       {
         type = "GROUP"
         name = var.saml_app.group_attribute_statements.name
@@ -290,28 +290,28 @@ locals {
         filterType  = "REGEX"
         filterValue = local.group_attribute_statements_regex
       }
-  ] }) : null
+  ] } : null
 
-    // Combine user and group attribute statements with custom_settings var to be pushed through settings
+  // Combine user and group attribute statements with custom_settings var to be pushed through settings
   attribute_statements_combined = {
     attributeStatements = concat(
       var.saml_app.user_attribute_statements != null ? local.user_attribute_statements : [],
-      var.saml_app.group_attribute_statements != null ? jsondecode(local.group_attribute_statements).attributeStatements : []
+      var.saml_app.group_attribute_statements != null ? local.group_attribute_statements.attributeStatements : []
     )
   }
 
   attribute_statements_map = length(local.attribute_statements_combined.attributeStatements) > 0 ? {
-    attribute_statements = jsonencode(local.attribute_statements_combined)
+    attribute_statements = local.attribute_statements_combined
   } : {}
 
-  app_settings = merge(
+  app_settings = jsonencode(merge(
     var.saml_app.custom_settings != null ? var.saml_app.custom_settings : {},
     local.attribute_statements_map
-  )
+  ))
 }
 
 resource "okta_app_saml" "saml_app" {
-  app_settings_json                = jsondecode(local.app_settings)
+  app_settings_json                = local.app_settings
   accessibility_error_redirect_url = var.saml_app.accessibility_error_redirect_url
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
   accessibility_self_service       = var.saml_app.accessibility_self_service
