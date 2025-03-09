@@ -97,18 +97,17 @@ variable "admin_note" {
 }
 
 variable "saml_app" {
-  description = "List of SAML application configuration objects"
+  description = "Variable for SAML application configuration objects"
   default     = null
   type = object({
     // Required basic settings
     sso_url           = optional(string, null)
-    audience          = string
-    logo              = string
+    audience          = optional(string, null)
+    logo              = optional(string, null)
     label             = optional(string, null)
     preconfigured_app = optional(string, null)
 
     // Optional basic settings
-
     recipient   = optional(string, null)
     destination = optional(string, null)
 
@@ -128,29 +127,29 @@ variable "saml_app" {
     single_logout_url         = optional(string, null)
 
     // SAML protocol settings
-    assertion_signed            = optional(bool, true)
-    authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
-    digest_algorithm            = optional(string, "SHA256")
-    honor_force_authn           = optional(bool, true)
-    idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
+    assertion_signed            = optional(bool, false)
+    authn_context_class_ref     = optional(string, null)
+    digest_algorithm            = optional(string, null)
+    honor_force_authn           = optional(bool, false)
+    idp_issuer                  = optional(string, null)
     request_compressed          = optional(bool, null)
-    response_signed             = optional(bool, true)
+    response_signed             = optional(bool, false)
     saml_signed_request_enabled = optional(bool, false)
-    saml_version                = optional(string, "2.0")
-    signature_algorithm         = optional(string, "RSA_SHA256")
+    saml_version                = optional(string, null)
+    signature_algorithm         = optional(string, null)
     sp_issuer                   = optional(string, null)
-    subject_name_id_format      = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
-    subject_name_id_template    = optional(string, "$${user.userName}")
+    subject_name_id_format      = optional(string, null)
+    subject_name_id_template    = optional(string, null)
 
     // Certificate settings
     key_name        = optional(string, null)
     key_years_valid = optional(number, null)
 
     // User management settings
-    user_name_template             = optional(string, "$${source.login}")
+    user_name_template             = optional(string, null)
     user_name_template_push_status = optional(string, null)
     user_name_template_suffix      = optional(string, null)
-    user_name_template_type        = optional(string, "BUILT_IN")
+    user_name_template_type        = optional(string, null)
     inline_hook_id                 = optional(string, null)
 
     // Application settings
@@ -173,7 +172,7 @@ variable "saml_app" {
   })
   validation {
     condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.sso_url != null && var.saml_app.audience != null) : true
-    error_message = "SSO URL, and Audience are required fields for SAML applications."
+    error_message = "SSO URL, and Audience are required fields for SAML applications if it is not a preconfigured app."
   }
 
   validation {
@@ -214,12 +213,6 @@ variable "saml_app" {
     error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
   }
 
-  validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.user_name_template_type == null ? true : contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type)
-    ) : true
-    error_message = "User name template type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
-  }
 }
 
 variable "authentication_policy_rules" {
