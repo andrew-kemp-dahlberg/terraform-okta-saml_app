@@ -310,7 +310,7 @@ locals {
           "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
           "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
           "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-        }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+        }, var.saml_app.group_attribute_statements.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
         filterType  = "REGEX"
         filterValue = local.group_attribute_statements_regex
       }

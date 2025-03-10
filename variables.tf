@@ -165,6 +165,7 @@ variable "saml_app" {
     })), [])
     group_attribute_statements = optional(object({
       name = string
+      name_format = optional(string, "unspecified")
     }), null)
 
     // Custom settings
