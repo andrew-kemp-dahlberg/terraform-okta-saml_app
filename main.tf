@@ -258,7 +258,6 @@ locals {
   
   // SAML protocol settings
   assertion_signed = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.assertion_signed, true) : var.saml_app.assertion_signed
-  authentication_policy = var.saml_app.preconfigured_app == null ? "rsto89gt30Dn9uLiy2p7" : null
   authn_context_class_ref = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.authn_context_class_ref, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport") : var.saml_app.authn_context_class_ref
   digest_algorithm = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.digest_algorithm, "SHA256") : var.saml_app.digest_algorithm
   honor_force_authn = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.honor_force_authn, true) : var.saml_app.honor_force_authn
@@ -355,7 +354,7 @@ resource "okta_app_saml" "saml_app" {
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
   
   // Authentication policy
-  authentication_policy            = local.authentication_policy
+  authentication_policy            = okta_app_signon_policy.authentication_policy.id
   implicit_assignment              = var.saml_app.implicit_assignment
   
   // User management settings
