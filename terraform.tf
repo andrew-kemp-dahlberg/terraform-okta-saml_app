@@ -15,3 +15,4 @@ provider "okta" {
   private_key    = var.environment.private_key
   scopes         = ["okta.apps.manage", "okta.apps.read", "okta.groups.manage", "okta.groups.read", "okta.policies.manage", "okta.policies.read", "okta.profileMappings.manage", "okta.profileMappings.read"]
 }
+

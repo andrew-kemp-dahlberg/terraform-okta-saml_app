@@ -97,19 +97,19 @@ variable "admin_note" {
 }
 
 variable "saml_app" {
-  description = "List of SAML application configuration objects"
+  description = "Variable for SAML application configuration objects"
   default     = null
   type = object({
     // Required basic settings
-    sso_url  = string
-    audience = string
-    logo     = string
-
-    // Optional basic settings
+    sso_url           = optional(string, null)
+    audience          = optional(string, null)
+    logo              = optional(string, null)
     label             = optional(string, null)
     preconfigured_app = optional(string, null)
-    recipient         = optional(string, null)
-    destination       = optional(string, null)
+
+    // Optional basic settings
+    recipient   = optional(string, null)
+    destination = optional(string, null)
 
     // Accessibility settings
     accessibility_error_redirect_url = optional(string, null)
@@ -127,29 +127,29 @@ variable "saml_app" {
     single_logout_url         = optional(string, null)
 
     // SAML protocol settings
-    assertion_signed            = optional(bool, true)
-    authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
-    digest_algorithm            = optional(string, "SHA256")
-    honor_force_authn           = optional(bool, true)
-    idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
+    assertion_signed            = optional(bool, false)
+    authn_context_class_ref     = optional(string, null)
+    digest_algorithm            = optional(string, null)
+    honor_force_authn           = optional(bool, false)
+    idp_issuer                  = optional(string, null)
     request_compressed          = optional(bool, null)
-    response_signed             = optional(bool, true)
+    response_signed             = optional(bool, false)
     saml_signed_request_enabled = optional(bool, false)
-    saml_version                = optional(string, "2.0")
-    signature_algorithm         = optional(string, "RSA_SHA256")
+    saml_version                = optional(string, null)
+    signature_algorithm         = optional(string, null)
     sp_issuer                   = optional(string, null)
-    subject_name_id_format      = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
-    subject_name_id_template    = optional(string, "$${user.userName}")
+    subject_name_id_format      = optional(string, null)
+    subject_name_id_template    = optional(string, null)
 
     // Certificate settings
     key_name        = optional(string, null)
     key_years_valid = optional(number, null)
 
     // User management settings
-    user_name_template             = optional(string, "$${source.login}")
+    user_name_template             = optional(string, null)
     user_name_template_push_status = optional(string, null)
     user_name_template_suffix      = optional(string, null)
-    user_name_template_type        = optional(string, "BUILT_IN")
+    user_name_template_type        = optional(string, null)
     inline_hook_id                 = optional(string, null)
 
     // Application settings
@@ -164,13 +164,20 @@ variable "saml_app" {
       values      = list(string)
     })), [])
     group_attribute_statements = optional(object({
-      name         = string
+      name = string
     }), null)
+
+    // Custom settings
+    custom_settings = optional(map(any), null)
   })
+  validation {
+    condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.sso_url != null && var.saml_app.audience != null) : true
+    error_message = "SSO URL, and Audience are required fields for SAML applications if it is not a preconfigured app."
+  }
 
   validation {
-    condition     = var.saml_app != null ? (var.saml_app.sso_url != null && var.saml_app.audience != null && var.saml_app.logo != null) : true
-    error_message = "SSO URL, Audience, and Logo are required fields for SAML applications."
+    condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.logo != null) : true
+    error_message = "Either preconfigured_app or logo must be provided for the SAML application."
   }
 
   validation {
@@ -178,20 +185,11 @@ variable "saml_app" {
       var.saml_app.user_attribute_statements == null ? true : alltrue([
         for attr in var.saml_app.user_attribute_statements :
         attr.name != null &&
-        contains(["basic", "uri reference", "scim", "scim enterprise", "unspecified"],
+        contains(["basic", "uri reference", "unspecified"],
         coalesce(attr.name_format, "unspecified"))
       ])
     ) : true
-    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', 'scim', 'scim enterprise', 'scim group', or 'unspecified'."
-  }
-
-  validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.group_attribute_statements == null ? true : alltrue([
-        for attr in var.saml_app.group_attribute_statements : attr.name != null
-      ])
-    ) : true
-    error_message = "Each group_attribute_statements object must have a name."
+    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', or 'unspecified'."
   }
 
   validation {
@@ -215,12 +213,6 @@ variable "saml_app" {
     error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
   }
 
-  validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.user_name_template_type == null ? true : contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type)
-    ) : true
-    error_message = "User name template type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
-  }
 }
 
 variable "authentication_policy_rules" {
@@ -258,13 +250,13 @@ variable "authentication_policy_rules" {
 variable "roles" {
   description = "Creates assignments based on groups that can then be assigned to users."
   type = list(object({
-    role                = string
+    name                = string
     attribute_statement = optional(bool, false)
     claim               = optional(bool, false)
     profile             = map(any)
   }))
   default = [{
-    role                = "assignment"
+    name                = "assignment"
     profile             = {}
     attribute_statement = false
     claim               = false
