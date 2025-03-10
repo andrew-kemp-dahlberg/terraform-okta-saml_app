@@ -329,10 +329,10 @@ locals {
     attribute_statements = local.attribute_statements_combined
   } : {}
 
-  app_settings = jsonencode(merge(
+  app_settings = merge(
     var.saml_app.custom_settings != null ? var.saml_app.custom_settings : {},
     local.attribute_statements_map
-  ))
+  )
 }
 
 resource "okta_app_saml" "saml_app" {
@@ -402,7 +402,7 @@ resource "okta_app_saml" "saml_app" {
   key_years_valid                  = var.saml_app.key_years_valid
   
   // App settings (JSON format)
-  app_settings_json                = local.app_settings
+  app_settings_json                = jsonencode(local.app_settings)
 }
 
 
