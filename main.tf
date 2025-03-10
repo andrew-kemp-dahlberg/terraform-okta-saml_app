@@ -339,6 +339,7 @@ resource "okta_app_saml" "saml_app" {
   label                            = local.saml_label
   status                           = var.saml_app.status
   preconfigured_app                = var.saml_app.preconfigured_app
+
   
   // Visual/UI settings
   logo                             = var.saml_app.logo
@@ -399,9 +400,10 @@ resource "okta_app_saml" "saml_app" {
   // Certificate settings
   key_name                         = var.saml_app.key_name
   key_years_valid                  = var.saml_app.key_years_valid
-  
-  // App settings (JSON format)
+
+    // App settings (JSON format)
   app_settings_json                = jsonencode(local.app_settings)
+  
 }
 
 
