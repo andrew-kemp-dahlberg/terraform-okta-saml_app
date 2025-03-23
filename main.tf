@@ -225,6 +225,19 @@ resource "okta_app_saml" "saml_app" {
   
 }
 
+resource "okta_app_user_base_schema_property" "properties" {
+  for_each = { for idx, prop in var.base_schema : prop.index => prop }
+  
+  app_id      = okta_app_saml.saml_app.id
+  index       = each.value.index
+  title       = each.value.title
+  type        = each.value.type
+  master      = each.value.master
+  pattern     = each.value.pattern
+  permissions = each.value.permissions
+  required    = each.value.required
+  user_type   = each.value.user_type
+}
 
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
@@ -236,6 +249,48 @@ resource "okta_app_group_assignments" "main_app" {
       id       = group_id.value
       profile  = jsonencode(local.roles[group_id.key].profile)
       priority = tonumber(group_id.key) + 1
+    }
+  }
+}
+
+resource "okta_app_user_schema_property" "custom_properties" {
+  for_each = { for idx, prop in var.custom_schema : prop.index => prop }
+
+  app_id      = okta_app_saml.saml_app.id
+  index       = each.value.index
+  title       = each.value.title
+  type        = each.value.type
+  description = each.value.description
+  master      = each.value.master
+  scope       = each.value.scope
+  
+  # Optional properties
+  dynamic "array_one_of" {
+    for_each = each.value.array_one_of != null ? each.value.array_one_of : []
+    content {
+      const = array_one_of.value.const
+      title = array_one_of.value.title
+    }
+  }
+  
+  array_enum         = each.value.array_enum
+  array_type         = each.value.array_type
+  enum               = each.value.enum
+  external_name      = each.value.external_name
+  external_namespace = each.value.external_namespace
+  max_length         = each.value.max_length
+  min_length         = each.value.min_length
+  permissions        = each.value.permissions
+  required           = each.value.required
+  union              = each.value.union
+  unique             = each.value.unique
+  user_type          = each.value.user_type
+  
+  dynamic "one_of" {
+    for_each = each.value.one_of != null ? each.value.one_of : []
+    content {
+      const = one_of.value.const
+      title = one_of.value.title
     }
   }
 }

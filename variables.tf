@@ -132,35 +132,36 @@ variable "saml_app" {
     single_logout_url         = optional(string, null)
 
     // SAML protocol settings
-    assertion_signed            = optional(bool, false)
-    authn_context_class_ref     = optional(string, null)
-    digest_algorithm            = optional(string, null)
-    honor_force_authn           = optional(bool, false)
-    idp_issuer                  = optional(string, null)
+    assertion_signed            = optional(bool, true)
+    authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
+    digest_algorithm            = optional(string, "SHA256")
+    honor_force_authn           = optional(bool, true)
+    idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
     request_compressed          = optional(bool, null)
-    response_signed             = optional(bool, false)
+    response_signed             = optional(bool, true)
     saml_signed_request_enabled = optional(bool, false)
-    saml_version                = optional(string, null)
-    signature_algorithm         = optional(string, null)
+    saml_version                = optional(string, "2.0")
+    signature_algorithm         = optional(string, "RSA_SHA256")
     sp_issuer                   = optional(string, null)
-    subject_name_id_format      = optional(string, null)
-    subject_name_id_template    = optional(string, null)
+    subject_name_id_format      = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
+    subject_name_id_template    = optional(string, "$${user.userName}")
 
     // Certificate settings
     key_name        = optional(string, null)
     key_years_valid = optional(number, null)
 
     // User management settings
-    user_name_template             = optional(string, null)
+    user_name_template             = optional(string, "$${source.login}")
     user_name_template_push_status = optional(string, null)
     user_name_template_suffix      = optional(string, null)
-    user_name_template_type        = optional(string, null)
+    user_name_template_type        = optional(string, "BUILT_IN")
     inline_hook_id                 = optional(string, null)
 
     // Application settings
     status              = optional(string, "ACTIVE")
     enduser_note        = optional(string, null)
     implicit_assignment = optional(bool, false)
+    app_links_json      = optional(string, null)
 
     // Attribute statements
     user_attribute_statements = optional(list(object({
@@ -176,49 +177,137 @@ variable "saml_app" {
     // Custom settings
     custom_settings = optional(map(any), null)
   })
+
+  # Validate required fields for non-preconfigured apps
   validation {
-    condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.sso_url != null && var.saml_app.audience != null) : true
-    error_message = "SSO URL, and Audience are required fields for SAML applications if it is not a preconfigured app."
+    condition = var.saml_app == null || (
+      var.saml_app.preconfigured_app != null || (
+        var.saml_app.sso_url != null && 
+        var.saml_app.audience != null && 
+        var.saml_app.logo != null
+      )
+    )
+    error_message = "For custom SAML applications (not using preconfigured_app), you must provide sso_url, audience, and logo."
   }
 
+  # Validate SAML version
   validation {
-    condition     = var.saml_app != null ? (var.saml_app.preconfigured_app != null || var.saml_app.logo != null) : true
-    error_message = "Either preconfigured_app or logo must be provided for the SAML application."
+    condition = var.saml_app == null || (
+      var.saml_app.saml_version == null || 
+      contains(["1.1", "2.0"], var.saml_app.saml_version)
+    )
+    error_message = "SAML version must be either '1.1' or '2.0'."
   }
 
+  # Validate user_name_template_push_status
   validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.user_attribute_statements == null ? true : alltrue([
-        for attr in var.saml_app.user_attribute_statements :
-        attr.name != null &&
-        contains(["basic", "uri reference", "unspecified"],
-        coalesce(attr.name_format, "unspecified"))
-      ])
-    ) : true
-    error_message = "Each user_attribute_statements object must have a name and name_format must be one of: 'basic', 'uri reference', or 'unspecified'."
+    condition = var.saml_app == null || (
+      var.saml_app.user_name_template_push_status == null || 
+      contains(["PUSH", "DONT_PUSH"], var.saml_app.user_name_template_push_status)
+    )
+    error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
   }
 
+  # Validate user_name_template_type
   validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.status == null ? true : contains(["ACTIVE", "INACTIVE"], var.saml_app.status)
-    ) : true
+    condition = var.saml_app == null || (
+      var.saml_app.user_name_template_type == null || 
+      contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type)
+    )
+    error_message = "user_name_template_type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
+  }
+
+  # Validate application status
+  validation {
+    condition = var.saml_app == null || (
+      var.saml_app.status == null || 
+      contains(["ACTIVE", "INACTIVE"], var.saml_app.status)
+    )
     error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
   }
 
+  # Validate digest algorithm
   validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.digest_algorithm == null ? true : contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm)
-    ) : true
+    condition = var.saml_app == null || (
+      var.saml_app.digest_algorithm == null || 
+      contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm)
+    )
     error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
   }
 
+  # Validate signature algorithm
   validation {
-    condition = var.saml_app != null ? (
-      var.saml_app.signature_algorithm == null ? true : contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm)
-    ) : true
+    condition = var.saml_app == null || (
+      var.saml_app.signature_algorithm == null || 
+      contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm)
+    )
     error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
   }
 
+  # Validate subject_name_id_format - common formats
+  validation {
+    condition = var.saml_app == null || (
+      var.saml_app.subject_name_id_format == null || 
+      contains([
+        "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+        "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+        "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+        "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+        "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
+      ], var.saml_app.subject_name_id_format) || 
+      can(regex("^urn:oasis:names:tc:SAML:[1-2]\\.[0-9]:nameid-format:.+$", var.saml_app.subject_name_id_format))
+    )
+    error_message = "subject_name_id_format must be a valid SAML NameID format URN."
+  }
+
+  # Validate key_years_valid (if provided)
+  validation {
+    condition = var.saml_app == null || (
+      var.saml_app.key_years_valid == null || 
+      (var.saml_app.key_years_valid >= 2 && var.saml_app.key_years_valid <= 10)
+    )
+    error_message = "key_years_valid must be between 2 and 10 years."
+  }
+
+  # Validate that key_name and key_years_valid are set together
+  validation {
+    condition = var.saml_app == null || (
+      (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
+      (var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
+    )
+    error_message = "key_name and key_years_valid must be set together."
+  }
+
+  # Validate user attribute statements
+  validation {
+    condition = var.saml_app == null || (
+      var.saml_app.user_attribute_statements == null ? true : alltrue([
+        for attr in var.saml_app.user_attribute_statements :
+        attr.name != null &&
+        contains(["basic", "uri reference", "unspecified"], coalesce(attr.name_format, "unspecified")) &&
+        length(attr.values) > 0
+      ])
+    ) 
+    error_message = "Each user_attribute_statements object must have a name, valid name_format, and at least one value."
+  }
+
+  # Validate app_links_json is valid JSON if provided
+  validation {
+    condition = var.saml_app == null || (
+      var.saml_app.app_links_json == null || 
+      can(jsondecode(var.saml_app.app_links_json))
+    )
+    error_message = "app_links_json must be a valid JSON string."
+  }
+
+  # Validate app_settings_json is valid JSON if provided
+  validation {
+    condition = var.saml_app == null || (
+      var.saml_app.custom_settings == null || 
+      can(jsonencode(var.saml_app.custom_settings))
+    )
+    error_message = "custom_settings must be a valid map that can be converted to JSON."
+  }
 }
 
 variable authentication_policy {
@@ -254,6 +343,45 @@ variable "admin_role" {
     profile             = {}
     attribute_statement = false
     claim               = false
+  }
+}
+
+variable "base_schema" {
+  description = "List of application user base schema properties to configure"
+  type = list(object({
+    index       = string
+    title       = string
+    type        = string
+    master      = optional(string, "PROFILE_MASTER")
+    pattern     = optional(string)
+    permissions = optional(string, "READ_ONLY")
+    required    = optional(bool, false)
+    user_type   = optional(string, "default")
+  }))
+  default = []
+  
+  validation {
+    condition = alltrue([
+      for prop in var.base_schema :
+      contains(["string", "boolean", "number", "integer", "array", "object"], prop.type)
+    ])
+    error_message = "Type must be one of: string, boolean, number, integer, array, or object."
+  }
+  
+  validation {
+    condition = alltrue([
+      for prop in var.base_schema :
+      prop.master == null || contains(["PROFILE_MASTER", "OKTA"], prop.master)
+    ])
+    error_message = "Master must be one of: PROFILE_MASTER or OKTA."
+  }
+  
+  validation {
+    condition = alltrue([
+      for prop in var.base_schema :
+      prop.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], prop.permissions)
+    ])
+    error_message = "Permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
   }
 }
 
