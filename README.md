@@ -1,4 +1,4 @@
-# Okta SAML Application Module
+# Okta Application Module
 
 This Terraform module creates and configures an Okta SAML application with role-based access, attribute statements, and schema customization.
 
@@ -14,10 +14,9 @@ This Terraform module creates and configures an Okta SAML application with role-
 ## Usage
 
 ```hcl
-module "okta_saml_app" {
-  source  = "andrew-kemp-dahlberg/app/okta"
+module "okta_app" {
   version = "0.1.6"
-  name = "MyApplication"
+  source = "path/to/module"
   
   environment = {
     org_name       = "your-org"
