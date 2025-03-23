@@ -358,10 +358,19 @@ variable "base_schema" {
     master      = optional(string, "PROFILE_MASTER")
     pattern     = optional(string)
     permissions = optional(string, "READ_ONLY")
-    required    = optional(bool, false)
+    required    = optional(bool, true)
     user_type   = optional(string, "default")
   }))
-  default = []
+  default = [{
+  index       = "userName"
+  master      = "PROFILE_MASTER"
+  pattern     = null
+  permissions = READ_ONLY
+  required    = true
+  title       = "Username"
+  type        = "string"
+  user_type   = "default"
+}]
   
   validation {
     condition = alltrue([
