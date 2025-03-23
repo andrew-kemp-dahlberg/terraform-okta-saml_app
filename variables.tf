@@ -365,7 +365,7 @@ variable "base_schema" {
   index       = "userName"
   master      = "PROFILE_MASTER"
   pattern     = null
-  permissions = READ_ONLY
+  permissions = "READ_ONLY"
   required    = true
   title       = "Username"
   type        = "string"
