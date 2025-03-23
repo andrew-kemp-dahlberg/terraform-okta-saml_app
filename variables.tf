@@ -7,6 +7,11 @@ variable "environment" {
     client_id      = string
     private_key_id = string
     private_key    = string
+    authentication_policy_ids = object({
+      high = optional(string)
+      medium = optional(string)
+      low = optional(string)
+    })
     device_assurance_policy_ids = object({
       Mac     = optional(string)
       Windows = optional(string)
@@ -216,36 +221,10 @@ variable "saml_app" {
 
 }
 
-variable "authentication_policy_rules" {
-  type = list(object({
-    name                        = string
-    access                      = optional(string, "ALLOW")
-    factor_mode                 = optional(string, "2FA")
-    type                        = optional(string, "ASSURANCE")
-    status                      = optional(string, "ACTIVE")
-    re_authentication_frequency = optional(string, "PT43800H")
-    custom_expression           = optional(string, null)
-    network_includes            = optional(list(string), null)
-    network_excludes            = optional(list(string), null)
-    risk_score                  = optional(string, "")
-    inactivity_period           = optional(string, "")
-    network_connection          = optional(string, "ANYWHERE")
-    device_is_managed           = optional(bool, null)
-    device_is_registered        = optional(bool, null)
-    device_assurances_included  = optional(list(string), [])
-    groups_included             = optional(list(string), [])
-    groups_excluded             = optional(list(string), [])
-    users_included              = optional(list(string), [])
-    users_excluded              = optional(list(string), [])
-    user_types_included         = optional(list(string), [])
-    user_types_excluded         = optional(list(string), [])
-    constraints                 = optional(list(string), [])
-    platform_include = optional(list(object({
-      os_type = optional(string, "OTHER")
-      type    = optional(string, "DESKTOP")
-    })), [])
-  }))
-  default = null
+variable authentication_policy {
+  description = "This can equal low, medium, high and these will map to the authentication policy environment variable or can be an id of an auth policy. If it is custom recommendation is to use the module within the same terraform config"
+  type = string
+  default = "high"
 }
 
 variable "roles" {
