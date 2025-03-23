@@ -260,13 +260,13 @@ variable "saml_app" {
     error_message = "subject_name_id_format must be a valid SAML NameID format URN."
   }
 
-# Validate key_years_valid range and that it's provided when key_name is specified
+# ###Validate key_years_valid range and that it's provided when key_name is specified
 # validation {
 #   condition = (
-#     var.saml_app == null || 
+#     var.saml_app == null || (
 #     var.saml_app.key_years_valid == null || 
 #     (var.saml_app.key_years_valid >= 2 && var.saml_app.key_years_valid <= 10)
-#   )
+#   ))
 #   error_message = "When specified, key_years_valid must be between 2 and 10 years."
 # }
 
