@@ -58,30 +58,30 @@ locals {
   recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
   destination = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
 
-   // Accessibility settings
+  // Accessibility settings
   accessibility_self_service = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.accessibility_self_service, false) : var.saml_app.accessibility_self_service
-  
+
   // Endpoint settings
   acs_endpoints = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.acs_endpoints, []) : var.saml_app.acs_endpoints
-  
-  // SAML protocol settings
-  assertion_signed = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.assertion_signed, true) : var.saml_app.assertion_signed
-  authn_context_class_ref = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.authn_context_class_ref, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport") : var.saml_app.authn_context_class_ref
-  digest_algorithm = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.digest_algorithm, "SHA256") : var.saml_app.digest_algorithm
-  honor_force_authn = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.honor_force_authn, true) : var.saml_app.honor_force_authn
-  idp_issuer = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.idp_issuer, "http://www.okta.com/$${org.externalKey}") : var.saml_app.idp_issuer
-  response_signed = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.response_signed, true) : var.saml_app.response_signed
-  saml_version = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.saml_version, "2.0") : var.saml_app.saml_version
-  signature_algorithm = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.signature_algorithm, "RSA_SHA256") : var.saml_app.signature_algorithm
-  subject_name_id_format = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.subject_name_id_format, "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified") : var.saml_app.subject_name_id_format
-  subject_name_id_template = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.subject_name_id_template, "$${user.userName}") : var.saml_app.subject_name_id_template
-  
-  // User management settings
-  user_name_template = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.user_name_template, "$${source.login}") : var.saml_app.user_name_template
-  user_name_template_type = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.user_name_template_type, "BUILT_IN") : var.saml_app.user_name_template_type
-  
 
-  
+  // SAML protocol settings
+  assertion_signed         = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.assertion_signed, true) : var.saml_app.assertion_signed
+  authn_context_class_ref  = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.authn_context_class_ref, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport") : var.saml_app.authn_context_class_ref
+  digest_algorithm         = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.digest_algorithm, "SHA256") : var.saml_app.digest_algorithm
+  honor_force_authn        = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.honor_force_authn, true) : var.saml_app.honor_force_authn
+  idp_issuer               = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.idp_issuer, "http://www.okta.com/$${org.externalKey}") : var.saml_app.idp_issuer
+  response_signed          = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.response_signed, true) : var.saml_app.response_signed
+  saml_version             = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.saml_version, "2.0") : var.saml_app.saml_version
+  signature_algorithm      = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.signature_algorithm, "RSA_SHA256") : var.saml_app.signature_algorithm
+  subject_name_id_format   = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.subject_name_id_format, "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified") : var.saml_app.subject_name_id_format
+  subject_name_id_template = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.subject_name_id_template, "$${user.userName}") : var.saml_app.subject_name_id_template
+
+  // User management settings
+  user_name_template      = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.user_name_template, "$${source.login}") : var.saml_app.user_name_template
+  user_name_template_type = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.user_name_template_type, "BUILT_IN") : var.saml_app.user_name_template_type
+
+
+
   //Formatting user attribute statements from saml_app variable
   user_attribute_statements = var.saml_app.user_attribute_statements == null ? null : [
     for attr in var.saml_app.user_attribute_statements : {
@@ -144,79 +144,79 @@ locals {
 
 resource "okta_app_saml" "saml_app" {
   // Basic app configuration
-  label                            = local.saml_label
-  status                           = var.saml_app.status
-  preconfigured_app                = var.saml_app.preconfigured_app
+  label             = local.saml_label
+  status            = var.saml_app.status
+  preconfigured_app = var.saml_app.preconfigured_app
 
-  
+
   // Visual/UI settings
-  logo                             = var.saml_app.logo
-  admin_note                       = jsonencode(local.admin_note)
-  enduser_note                     = var.saml_app.enduser_note
-  hide_ios                         = var.saml_app.hide_ios
-  hide_web                         = var.saml_app.hide_web
-  auto_submit_toolbar              = var.saml_app.auto_submit_toolbar
-  
+  logo                = var.saml_app.logo
+  admin_note          = jsonencode(local.admin_note)
+  enduser_note        = var.saml_app.enduser_note
+  hide_ios            = var.saml_app.hide_ios
+  hide_web            = var.saml_app.hide_web
+  auto_submit_toolbar = var.saml_app.auto_submit_toolbar
+
   // Accessibility settings
   accessibility_self_service       = local.accessibility_self_service
   accessibility_error_redirect_url = var.saml_app.accessibility_error_redirect_url
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
-  
-  // Authentication policy
-  authentication_policy            = local.authentication_policy_id
-  implicit_assignment              = var.saml_app.implicit_assignment
-  
-  // User management settings
-  user_name_template               = local.user_name_template
-  user_name_template_type          = local.user_name_template_type
-  user_name_template_suffix        = var.saml_app.user_name_template_suffix
-  user_name_template_push_status   = var.saml_app.user_name_template_push_status
-  
-  // SAML protocol settings
-  saml_version                     = local.saml_version
-  assertion_signed                 = local.assertion_signed
-  response_signed                  = local.response_signed
-  signature_algorithm              = local.signature_algorithm
-  digest_algorithm                 = local.digest_algorithm
-  honor_force_authn                = local.honor_force_authn
-  authn_context_class_ref          = local.authn_context_class_ref
-  idp_issuer                       = local.idp_issuer
-  
-  // SAML subject configuration
-  subject_name_id_format           = local.subject_name_id_format
-  subject_name_id_template         = local.subject_name_id_template
-  
-  // Endpoint configuration
-  acs_endpoints                    = local.acs_endpoints
-  sso_url                          = var.saml_app.sso_url
-  destination                      = local.destination
-  recipient                        = local.recipient
-  audience                         = var.saml_app.audience
-  default_relay_state              = var.saml_app.default_relay_state
-  sp_issuer                        = var.saml_app.sp_issuer
-  
-  // Single logout configuration
-  single_logout_url                = var.saml_app.single_logout_url
-  single_logout_certificate        = var.saml_app.single_logout_certificate
-  single_logout_issuer             = var.saml_app.single_logout_issuer
-  
-  // Advanced SAML settings
-  request_compressed               = var.saml_app.request_compressed
-  saml_signed_request_enabled      = var.saml_app.saml_signed_request_enabled
-  inline_hook_id                   = var.saml_app.inline_hook_id
-  
-  // Certificate settings
-  key_name                         = var.saml_app.key_name
-  key_years_valid                  = var.saml_app.key_years_valid
 
-    // App settings (JSON format)
-  app_settings_json                = jsonencode(local.app_settings)
-  
+  // Authentication policy
+  authentication_policy = local.authentication_policy_id
+  implicit_assignment   = var.saml_app.implicit_assignment
+
+  // User management settings
+  user_name_template             = local.user_name_template
+  user_name_template_type        = local.user_name_template_type
+  user_name_template_suffix      = var.saml_app.user_name_template_suffix
+  user_name_template_push_status = var.saml_app.user_name_template_push_status
+
+  // SAML protocol settings
+  saml_version            = local.saml_version
+  assertion_signed        = local.assertion_signed
+  response_signed         = local.response_signed
+  signature_algorithm     = local.signature_algorithm
+  digest_algorithm        = local.digest_algorithm
+  honor_force_authn       = local.honor_force_authn
+  authn_context_class_ref = local.authn_context_class_ref
+  idp_issuer              = local.idp_issuer
+
+  // SAML subject configuration
+  subject_name_id_format   = local.subject_name_id_format
+  subject_name_id_template = local.subject_name_id_template
+
+  // Endpoint configuration
+  acs_endpoints       = local.acs_endpoints
+  sso_url             = var.saml_app.sso_url
+  destination         = local.destination
+  recipient           = local.recipient
+  audience            = var.saml_app.audience
+  default_relay_state = var.saml_app.default_relay_state
+  sp_issuer           = var.saml_app.sp_issuer
+
+  // Single logout configuration
+  single_logout_url         = var.saml_app.single_logout_url
+  single_logout_certificate = var.saml_app.single_logout_certificate
+  single_logout_issuer      = var.saml_app.single_logout_issuer
+
+  // Advanced SAML settings
+  request_compressed          = var.saml_app.request_compressed
+  saml_signed_request_enabled = var.saml_app.saml_signed_request_enabled
+  inline_hook_id              = var.saml_app.inline_hook_id
+
+  // Certificate settings
+  key_name        = var.saml_app.key_name
+  key_years_valid = var.saml_app.key_years_valid
+
+  // App settings (JSON format)
+  app_settings_json = jsonencode(local.app_settings)
+
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
   for_each = { for idx, prop in var.base_schema : prop.index => prop }
-  
+
   app_id      = okta_app_saml.saml_app.id
   index       = each.value.index
   title       = each.value.title
@@ -252,7 +252,7 @@ resource "okta_app_user_schema_property" "custom_properties" {
   description = each.value.description
   master      = each.value.master
   scope       = each.value.scope
-  
+
   # Optional properties
   dynamic "array_one_of" {
     for_each = each.value.array_one_of != null ? each.value.array_one_of : []
@@ -261,7 +261,7 @@ resource "okta_app_user_schema_property" "custom_properties" {
       title = array_one_of.value.title
     }
   }
-  
+
   array_enum         = each.value.array_enum
   array_type         = each.value.array_type
   enum               = each.value.enum
@@ -274,7 +274,7 @@ resource "okta_app_user_schema_property" "custom_properties" {
   union              = each.value.union
   unique             = each.value.unique
   user_type          = each.value.user_type
-  
+
   dynamic "one_of" {
     for_each = each.value.one_of != null ? each.value.one_of : []
     content {

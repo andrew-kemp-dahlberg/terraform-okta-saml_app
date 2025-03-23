@@ -8,9 +8,9 @@ variable "environment" {
     private_key_id = string
     private_key    = string
     authentication_policy_ids = object({
-      high = optional(string)
+      high   = optional(string)
       medium = optional(string)
-      low = optional(string)
+      low    = optional(string)
     })
     device_assurance_policy_ids = object({
       Mac     = optional(string)
@@ -170,7 +170,7 @@ variable "saml_app" {
       values      = list(string)
     })), [])
     group_attribute_statements = optional(object({
-      name = string
+      name        = string
       name_format = optional(string, "unspecified")
     }), null)
 
@@ -182,8 +182,8 @@ variable "saml_app" {
   validation {
     condition = var.saml_app == null || (
       var.saml_app.preconfigured_app != null || (
-        var.saml_app.sso_url != null && 
-        var.saml_app.audience != null && 
+        var.saml_app.sso_url != null &&
+        var.saml_app.audience != null &&
         var.saml_app.logo != null
       )
     )
@@ -193,7 +193,7 @@ variable "saml_app" {
   # Validate SAML version
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.saml_version == null || 
+      var.saml_app.saml_version == null ||
       contains(["1.1", "2.0"], var.saml_app.saml_version)
     )
     error_message = "SAML version must be either '1.1' or '2.0'."
@@ -202,7 +202,7 @@ variable "saml_app" {
   # Validate user_name_template_push_status
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.user_name_template_push_status == null || 
+      var.saml_app.user_name_template_push_status == null ||
       contains(["PUSH", "DONT_PUSH"], var.saml_app.user_name_template_push_status)
     )
     error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
@@ -211,7 +211,7 @@ variable "saml_app" {
   # Validate user_name_template_type
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.user_name_template_type == null || 
+      var.saml_app.user_name_template_type == null ||
       contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type)
     )
     error_message = "user_name_template_type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
@@ -220,7 +220,7 @@ variable "saml_app" {
   # Validate application status
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.status == null || 
+      var.saml_app.status == null ||
       contains(["ACTIVE", "INACTIVE"], var.saml_app.status)
     )
     error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
@@ -229,7 +229,7 @@ variable "saml_app" {
   # Validate digest algorithm
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.digest_algorithm == null || 
+      var.saml_app.digest_algorithm == null ||
       contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm)
     )
     error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
@@ -238,7 +238,7 @@ variable "saml_app" {
   # Validate signature algorithm
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.signature_algorithm == null || 
+      var.saml_app.signature_algorithm == null ||
       contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm)
     )
     error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
@@ -247,14 +247,14 @@ variable "saml_app" {
   # Validate subject_name_id_format - common formats
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.subject_name_id_format == null || 
+      var.saml_app.subject_name_id_format == null ||
       contains([
         "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
         "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
         "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
         "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
         "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
-      ], var.saml_app.subject_name_id_format) || 
+      ], var.saml_app.subject_name_id_format) ||
       can(regex("^urn:oasis:names:tc:SAML:[1-2]\\.[0-9]:nameid-format:.+$", var.saml_app.subject_name_id_format))
     )
     error_message = "subject_name_id_format must be a valid SAML NameID format URN."
@@ -263,7 +263,7 @@ variable "saml_app" {
   # Validate key_years_valid (if provided)
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.key_years_valid == null || 
+      var.saml_app.key_years_valid == null ||
       (var.saml_app.key_years_valid >= 2 && var.saml_app.key_years_valid <= 10)
     )
     error_message = "key_years_valid must be between 2 and 10 years."
@@ -272,7 +272,7 @@ variable "saml_app" {
   # Validate that key_name and key_years_valid are set together
   validation {
     condition = var.saml_app == null || (
-      (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
+      (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) ||
       (var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
     )
     error_message = "key_name and key_years_valid must be set together."
@@ -287,14 +287,14 @@ variable "saml_app" {
         contains(["basic", "uri reference", "unspecified"], coalesce(attr.name_format, "unspecified")) &&
         length(attr.values) > 0
       ])
-    ) 
+    )
     error_message = "Each user_attribute_statements object must have a name, valid name_format, and at least one value."
   }
 
   # Validate app_links_json is valid JSON if provided
   validation {
     condition = var.saml_app == null || (
-      var.saml_app.app_links_json == null || 
+      var.saml_app.app_links_json == null ||
       can(jsondecode(var.saml_app.app_links_json))
     )
     error_message = "app_links_json must be a valid JSON string."
@@ -302,10 +302,10 @@ variable "saml_app" {
 
 }
 
-variable authentication_policy {
+variable "authentication_policy" {
   description = "This can equal low, medium, high and these will map to the authentication policy environment variable or can be an id of an auth policy. If it is custom recommendation is to use the module within the same terraform config"
-  type = string
-  default = "high"
+  type        = string
+  default     = "high"
 }
 
 variable "roles" {
@@ -316,14 +316,14 @@ variable "roles" {
     claim               = optional(bool, false)
     profile             = map(string) # Changed from map(any) for better type safety
   }))
-  
+
   default = [{
     name                = "assignment"
     profile             = {}
     attribute_statement = false
     claim               = false
   }]
-  
+
   validation {
     condition = length([
       for role in var.roles : role
@@ -362,16 +362,16 @@ variable "base_schema" {
     user_type   = optional(string, "default")
   }))
   default = [{
-  index       = "userName"
-  master      = "PROFILE_MASTER"
-  pattern     = null
-  permissions = "READ_ONLY"
-  required    = true
-  title       = "Username"
-  type        = "string"
-  user_type   = "default"
-}]
-  
+    index       = "userName"
+    master      = "PROFILE_MASTER"
+    pattern     = null
+    permissions = "READ_ONLY"
+    required    = true
+    title       = "Username"
+    type        = "string"
+    user_type   = "default"
+  }]
+
   validation {
     condition = alltrue([
       for prop in var.base_schema :
@@ -379,7 +379,7 @@ variable "base_schema" {
     ])
     error_message = "Type must be one of: string, boolean, number, integer, array, or object."
   }
-  
+
   validation {
     condition = alltrue([
       for prop in var.base_schema :
@@ -387,7 +387,7 @@ variable "base_schema" {
     ])
     error_message = "Master must be one of: PROFILE_MASTER or OKTA."
   }
-  
+
   validation {
     condition = alltrue([
       for prop in var.base_schema :
@@ -399,29 +399,29 @@ variable "base_schema" {
 variable "custom_schema" {
   description = "List of custom schema properties to create for the Okta app"
   type = list(object({
-    index           = string
-    title           = string
-    type            = string
-    description     = optional(string)
-    master          = optional(string, "OKTA")
-    scope           = optional(string, "NONE")
-    array_enum      = optional(list(string))
-    array_type      = optional(string)
-    enum            = optional(list(string))
-    external_name   = optional(string)
+    index              = string
+    title              = string
+    type               = string
+    description        = optional(string)
+    master             = optional(string, "OKTA")
+    scope              = optional(string, "NONE")
+    array_enum         = optional(list(string))
+    array_type         = optional(string)
+    enum               = optional(list(string))
+    external_name      = optional(string)
     external_namespace = optional(string)
-    max_length      = optional(number)
-    min_length      = optional(number)
-    permissions     = optional(string, "READ_ONLY")
-    required        = optional(bool, false)
-    union           = optional(bool, false)
-    unique          = optional(string, "NOT_UNIQUE")
-    user_type       = optional(string, "default")
-    one_of          = optional(list(object({
+    max_length         = optional(number)
+    min_length         = optional(number)
+    permissions        = optional(string, "READ_ONLY")
+    required           = optional(bool, false)
+    union              = optional(bool, false)
+    unique             = optional(string, "NOT_UNIQUE")
+    user_type          = optional(string, "default")
+    one_of = optional(list(object({
       const = string
       title = string
     })))
-    array_one_of    = optional(list(object({
+    array_one_of = optional(list(object({
       const = string
       title = string
     })))
@@ -430,8 +430,8 @@ variable "custom_schema" {
 
   validation {
     condition = alltrue([
-      for prop in var.custom_schema : 
-        contains(["string", "boolean", "number", "integer", "array", "object"], prop.type)
+      for prop in var.custom_schema :
+      contains(["string", "boolean", "number", "integer", "array", "object"], prop.type)
     ])
     error_message = "Property type must be one of: string, boolean, number, integer, array, or object."
   }
@@ -439,7 +439,7 @@ variable "custom_schema" {
   validation {
     condition = alltrue([
       for prop in var.custom_schema :
-        prop.master == null || contains(["PROFILE_MASTER", "OKTA"], prop.master)
+      prop.master == null || contains(["PROFILE_MASTER", "OKTA"], prop.master)
     ])
     error_message = "Master must be either PROFILE_MASTER or OKTA."
   }
@@ -447,7 +447,7 @@ variable "custom_schema" {
   validation {
     condition = alltrue([
       for prop in var.custom_schema :
-        prop.scope == null || contains(["SELF", "NONE"], prop.scope)
+      prop.scope == null || contains(["SELF", "NONE"], prop.scope)
     ])
     error_message = "Scope must be either SELF or NONE."
   }
@@ -455,7 +455,7 @@ variable "custom_schema" {
   validation {
     condition = alltrue([
       for prop in var.custom_schema :
-        prop.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], prop.permissions)
+      prop.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], prop.permissions)
     ])
     error_message = "Permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
   }
@@ -463,7 +463,7 @@ variable "custom_schema" {
   validation {
     condition = alltrue([
       for prop in var.custom_schema :
-        prop.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], prop.unique)
+      prop.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], prop.unique)
     ])
     error_message = "Unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
   }
@@ -471,7 +471,7 @@ variable "custom_schema" {
   validation {
     condition = alltrue([
       for prop in var.custom_schema :
-        prop.union == null || prop.scope != "SELF" || prop.union == false
+      prop.union == null || prop.scope != "SELF" || prop.union == false
     ])
     error_message = "Union cannot be set to true if scope is set to SELF."
   }
@@ -479,7 +479,7 @@ variable "custom_schema" {
   validation {
     condition = alltrue([
       for prop in var.custom_schema :
-        prop.type != "array" || prop.array_type != null
+      prop.type != "array" || prop.array_type != null
     ])
     error_message = "Array type must be specified when type is set to array."
   }
