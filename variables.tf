@@ -300,14 +300,6 @@ variable "saml_app" {
     error_message = "app_links_json must be a valid JSON string."
   }
 
-  # Validate app_settings_json is valid JSON if provided
-  validation {
-    condition = var.saml_app == null || (
-      var.saml_app.custom_settings == null || 
-      can(jsonencode(var.saml_app.custom_settings))
-    )
-    error_message = "custom_settings must be a valid map that can be converted to JSON."
-  }
 }
 
 variable authentication_policy {
