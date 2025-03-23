@@ -11,7 +11,7 @@ locals {
     var.roles
   )
 
-  profile             = [for role in local.roles : role.profile]
+  profile             = [for role in var.roles : role.profile]
   app_group_names     = ["Not a department group"]
   push_group_names    = ["Not a department group"]
   mailing_group_names = ["Not a department group"]

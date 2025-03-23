@@ -384,6 +384,94 @@ variable "base_schema" {
     error_message = "Permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
   }
 }
+variable "custom_schema" {
+  description = "List of custom schema properties to create for the Okta app"
+  type = list(object({
+    index           = string
+    title           = string
+    type            = string
+    description     = optional(string)
+    master          = optional(string, "OKTA")
+    scope           = optional(string, "NONE")
+    array_enum      = optional(list(string))
+    array_type      = optional(string)
+    enum            = optional(list(string))
+    external_name   = optional(string)
+    external_namespace = optional(string)
+    max_length      = optional(number)
+    min_length      = optional(number)
+    permissions     = optional(string, "READ_ONLY")
+    required        = optional(bool, false)
+    union           = optional(bool, false)
+    unique          = optional(string, "NOT_UNIQUE")
+    user_type       = optional(string, "default")
+    one_of          = optional(list(object({
+      const = string
+      title = string
+    })))
+    array_one_of    = optional(list(object({
+      const = string
+      title = string
+    })))
+  }))
+  default = []
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema : 
+        contains(["string", "boolean", "number", "integer", "array", "object"], prop.type)
+    ])
+    error_message = "Property type must be one of: string, boolean, number, integer, array, or object."
+  }
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema :
+        prop.master == null || contains(["PROFILE_MASTER", "OKTA"], prop.master)
+    ])
+    error_message = "Master must be either PROFILE_MASTER or OKTA."
+  }
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema :
+        prop.scope == null || contains(["SELF", "NONE"], prop.scope)
+    ])
+    error_message = "Scope must be either SELF or NONE."
+  }
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema :
+        prop.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], prop.permissions)
+    ])
+    error_message = "Permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
+  }
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema :
+        prop.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], prop.unique)
+    ])
+    error_message = "Unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
+  }
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema :
+        prop.union == null || prop.scope != "SELF" || prop.union == false
+    ])
+    error_message = "Union cannot be set to true if scope is set to SELF."
+  }
+
+  validation {
+    condition = alltrue([
+      for prop in var.custom_schema :
+        prop.type != "array" || prop.array_type != null
+    ])
+    error_message = "Array type must be specified when type is set to array."
+  }
+}
 
 
 
