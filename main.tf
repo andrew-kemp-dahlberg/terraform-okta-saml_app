@@ -1,15 +1,4 @@
 locals {
-  admin_group_description = var.admin_role == {} ? "Group for ${var.name} super admins. Admin assignment is not automatic and must be assigned within the app" : "Group for ${var.name} super admins. Privileges are automatically assigned from this group"
-  #### this is also used to gather regex for group attribute statements
-  roles = concat(
-    var.admin_role != {} ? [{
-      name                = "Super Admin"
-      attribute_statement = var.admin_role.attribute_statement
-      claim               = var.admin_role.claim
-      profile             = var.admin_role.profile
-    }] : [],
-    var.roles
-  )
 
   profile             = [for role in var.roles : role.profile]
   app_group_names     = ["Not a department group"]
@@ -30,7 +19,7 @@ locals {
     jsonencode(p)
   )]
 
-  custom_attributes = [for index in range(length(local.roles)) : merge(
+  custom_attributes = [for index in range(length(var.roles)) : merge(
     { notes = local.group_notes[index] },
     { assignmentProfile = local.group_profile[index] },
     local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
@@ -41,9 +30,9 @@ locals {
 }
 
 resource "okta_group" "assignment_groups" {
-  count                     = length(local.roles)
-  name                      = "APP-ROLE-${upper(var.name)}-${upper(local.roles[count.index].name)}"
-  description               = "Group assigns users to ${var.name} with the role of ${local.roles[count.index].name}"
+  count                     = length(var.roles)
+  name                      = "APP-ROLE-${upper(var.name)}-${upper(var.roles[count.index].name)}"
+  description               = "Group assigns users to ${var.name} with the role of ${var.roles[count.index].name}"
   custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
 }
 
@@ -111,7 +100,7 @@ locals {
   group_attribute_exists = local.group_attribute_statements != null ? 1 : 0
 
   attribute_statement_roles = [
-    for role in local.roles : role
+    for role in var.roles : role
     if role.attribute_statement == true
   ]
   group_attribute_statements_regex = length(local.attribute_statement_roles) > 0 ? format(
@@ -247,7 +236,7 @@ resource "okta_app_group_assignments" "main_app" {
     iterator = group_id
     content {
       id       = group_id.value
-      profile  = jsonencode(local.roles[group_id.key].profile)
+      profile  = jsonencode(var.roles[group_id.key].profile)
       priority = tonumber(group_id.key) + 1
     }
   }
