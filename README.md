@@ -15,8 +15,8 @@ This Terraform module creates and configures an Okta SAML application with role-
 
 ```hcl
 module "okta_saml_app" {
-  source = "https://github.com/andrew-kemp-dahlberg/terraform-okta-app"
-
+  source  = "andrew-kemp-dahlberg/app/okta"
+  version = "0.1.6"
   name = "MyApplication"
   
   environment = {
