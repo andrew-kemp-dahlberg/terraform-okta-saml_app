@@ -10,6 +10,7 @@ output "saml_app" {
   }
 }
 
+
 output "app_url" {
   description = "URL for the application"
   value       = okta_app_saml.saml_app.embed_url
@@ -47,13 +48,6 @@ output "admin_note_details" {
     }
     last_audit_date = var.admin_note.last_access_audit_date
   }
-}
-
-output "authentication_policy_info" {
-  description = "Authentication policy information if configured"
-  value = var.authentication_policy_rules != null ? {
-    policy_rules = var.authentication_policy_rules
-  } : null
 }
 
 output "app_roles" {
