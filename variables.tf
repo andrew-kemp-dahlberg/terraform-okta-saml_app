@@ -261,17 +261,22 @@ variable "saml_app" {
   }
 
 # Validate key_years_valid range and that it's provided when key_name is specified
+# validation {
+#   condition = (
+#     var.saml_app == null || 
+#     var.saml_app.key_years_valid == null || 
+#     (var.saml_app.key_years_valid >= 2 && var.saml_app.key_years_valid <= 10)
+#   )
+#   error_message = "When specified, key_years_valid must be between 2 and 10 years."
+# }
+
 validation {
-  condition = var.saml_app == null || (
+  condition = (
+    var.saml_app == null || 
     (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
-    (
-      var.saml_app.key_name != null && 
-      var.saml_app.key_years_valid != null && 
-      var.saml_app.key_years_valid >= 2 && 
-      var.saml_app.key_years_valid <= 10
-    )
+    (var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
   )
-  error_message = "When key_name is specified, key_years_valid must be provided and be between 2 and 10 years."
+  error_message = "key_name and key_years_valid must either both be specified or both be omitted."
 }
   # Validate user attribute statements
   validation {
