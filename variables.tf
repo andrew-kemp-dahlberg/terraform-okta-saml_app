@@ -317,34 +317,45 @@ variable authentication_policy {
 }
 
 variable "roles" {
-  description = "Creates assignments based on groups that can then be assigned to users."
+  description = "Creates role-based assignments for groups that can be assigned to users through the SAML application."
   type = list(object({
     name                = string
     attribute_statement = optional(bool, false)
     claim               = optional(bool, false)
-    profile             = map(any)
+    profile             = map(string) # Changed from map(any) for better type safety
   }))
+  
   default = [{
     name                = "assignment"
     profile             = {}
     attribute_statement = false
     claim               = false
   }]
-}
+  
+  validation {
+    condition = length([
+      for role in var.roles : role
+      if can(regex("^[a-zA-Z0-9_-]+$", role.name))
+    ]) == length(var.roles)
+    error_message = "Role names must contain only alphanumeric characters, hyphens, and underscores."
+  }
 
-variable "admin_role" {
-  description = "Creates the role specifically for super admin. Just enter the map for the assignment for the assignment"
-  type = object({
-    attribute_statement = optional(bool, false)
-    claim               = optional(bool, false)
-    profile             = map(any)
-  })
-  default = {
-    profile             = {}
-    attribute_statement = false
-    claim               = false
+  validation {
+    condition = length([
+      for role in var.roles : role
+      if length(role.name) >= 1 && length(role.name) <= 128
+    ]) == length(var.roles)
+    error_message = "Role names must be between 1 and 128 characters."
+  }
+
+  validation {
+    condition = alltrue([
+      for role in var.roles : can(jsonencode(role.profile))
+    ])
+    error_message = "All profile objects must be valid JSON."
   }
 }
+
 
 variable "base_schema" {
   description = "List of application user base schema properties to configure"
