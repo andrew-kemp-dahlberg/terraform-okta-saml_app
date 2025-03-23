@@ -11,7 +11,7 @@ locals {
     var.roles
   )
 
-  profile             = [for role in local.roles : role.profile]
+  profile             = [for role in var.roles : role.profile]
   app_group_names     = ["Not a department group"]
   push_group_names    = ["Not a department group"]
   mailing_group_names = ["Not a department group"]
@@ -49,190 +49,6 @@ resource "okta_group" "assignment_groups" {
 
 
 locals {
-  policy_description = var.authentication_policy_rules == null ? "Authentication Policy for ${var.name}. It is the default policy set by Terraform." : "Authentication Policy for ${var.name}. It is a custom policy set through the terraform app module"
-}
-
-resource "okta_app_signon_policy" "authentication_policy" {
-  description = local.policy_description
-  name        = "${var.name} Authentication Policy"
-  catch_all   = false
-}
-
-locals {
-  device_assurances = compact(
-    concat(
-      [try(var.environment.device_assurance_policy_ids.Mac, null)],
-      [try(var.environment.device_assurance_policy_ids.Windows, null)],
-      [try(var.environment.device_assurance_policy_ids.iOS, null)],
-      [try(var.environment.device_assurance_policy_ids.Android, null)]
-    )
-    ) == [] ? null : compact(
-    concat(
-      [try(var.environment.device_assurance_policy_ids.Mac, null)],
-      [try(var.environment.device_assurance_policy_ids.Windows, null)],
-      [try(var.environment.device_assurance_policy_ids.iOS, null)],
-      [try(var.environment.device_assurance_policy_ids.Android, null)]
-    )
-  )
-
-
-  default_auth_rules = [
-    # Rule 1: Super Admin Authentication Policy Rule 
-    {
-      name                        = "Super Admin Authentication Policy Rule"
-      access                      = "ALLOW"
-      factor_mode                 = "2FA"
-      type                        = "ASSURANCE"
-      status                      = "ACTIVE"
-      re_authentication_frequency = "PT0S"
-      priority                    = 1
-      custom_expression           = null
-      network_includes            = null
-      network_excludes            = null
-      risk_score                  = ""
-      inactivity_period           = "PT1H"
-      network_connection          = "ANYWHERE"
-      device_is_managed           = true
-      device_is_registered        = true
-      device_assurances_included  = local.device_assurances
-      groups_included             = [okta_group.assignment_groups[0].id]
-      groups_excluded             = []
-      users_included              = []
-      users_excluded              = []
-      user_types_included         = []
-      user_types_excluded         = []
-      constraints = [jsonencode({
-        knowledge = { required = true }
-        possession = {
-          authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
-          required              = true
-          hardwareProtection    = "REQUIRED"
-          phishingResistant     = "REQUIRED"
-        }
-      })]
-      platform_include = []
-    },
-
-    # Rule 2: Supported Devices
-    {
-      name                        = "Supported Devices"
-      access                      = "ALLOW"
-      factor_mode                 = "2FA"
-      type                        = "ASSURANCE"
-      status                      = "ACTIVE"
-      re_authentication_frequency = "PT0S"
-      priority                    = 2
-      custom_expression           = null
-      network_includes            = null
-      network_excludes            = null
-      risk_score                  = ""
-      inactivity_period           = "PT43800H"
-      network_connection          = "ANYWHERE"
-      device_is_managed           = null
-      device_is_registered        = true
-      device_assurances_included  = local.device_assurances
-      groups_included             = []
-      groups_excluded             = [okta_group.assignment_groups[0].id]
-      users_included              = []
-      users_excluded              = []
-      user_types_included         = []
-      user_types_excluded         = []
-      constraints = [jsonencode({
-        knowledge = { required = true }
-        possession = {
-          authenticationMethods = [{ key = "okta_verify", method = "signed_nonce" }]
-          required              = true
-          hardwareProtection    = "REQUIRED"
-          phishingResistant     = "REQUIRED"
-        }
-      })]
-      platform_include = []
-    },
-
-    # Rule 3: Unsupported Devices
-    {
-      name                        = "Unsupported Devices"
-      access                      = "ALLOW"
-      factor_mode                 = "2FA"
-      type                        = "ASSURANCE"
-      status                      = "ACTIVE"
-      re_authentication_frequency = "PT43800H"
-      priority                    = 3
-      custom_expression           = null
-      network_includes            = null
-      network_excludes            = null
-      risk_score                  = ""
-      inactivity_period           = ""
-      network_connection          = "ANYWHERE"
-      device_is_managed           = null
-      device_is_registered        = null
-      device_assurances_included  = null
-      groups_included             = []
-      groups_excluded             = [okta_group.assignment_groups[0].id]
-      users_included              = []
-      users_excluded              = []
-      user_types_included         = []
-      user_types_excluded         = []
-      constraints = [jsonencode({
-        knowledge = {
-          reauthenticateIn = "PT43800H"
-          types            = ["password"]
-          required         = true
-        }
-        possession = {
-          required           = true
-          hardwareProtection = "REQUIRED"
-        }
-      })]
-      platform_include = [
-        { os_type = "CHROMEOS", type = "DESKTOP" },
-        { os_type = "OTHER", type = "DESKTOP" },
-        { os_type = "OTHER", type = "MOBILE" }
-      ]
-    }
-  ]
-
-  auth_rules = var.authentication_policy_rules == null ? local.default_auth_rules : var.authentication_policy_rules
-}
-
-resource "okta_app_signon_policy_rule" "auth_policy_rules" {
-  count                       = length(local.auth_rules)
-  policy_id                   = okta_app_signon_policy.authentication_policy.id
-  name                        = local.auth_rules[count.index].name
-  access                      = try(local.auth_rules[count.index].access, "ALLOW")
-  factor_mode                 = try(local.auth_rules[count.index].factor_mode, "2FA")
-  type                        = try(local.auth_rules[count.index].type, "ASSURANCE")
-  re_authentication_frequency = try(local.auth_rules[count.index].re_authentication_frequency, "PT0S")
-  constraints                 = try(local.auth_rules[count.index].constraints, [])
-  priority                    = try(local.auth_rules[count.index].priority, count.index + 1)
-  status                      = try(local.auth_rules[count.index].status, "ACTIVE")
-  custom_expression           = try(local.auth_rules[count.index].custom_expression, null)
-  inactivity_period           = try(local.auth_rules[count.index].inactivity_period, "")
-  network_connection          = try(local.auth_rules[count.index].network_connection, "ANYWHERE")
-  network_includes            = try(local.auth_rules[count.index].network_includes, null)
-  network_excludes            = try(local.auth_rules[count.index].network_excludes, null)
-  risk_score                  = try(local.auth_rules[count.index].risk_score, "")
-  device_is_managed           = try(local.auth_rules[count.index].device_is_managed, null)
-  device_is_registered        = try(local.auth_rules[count.index].device_is_registered, null)
-  device_assurances_included  = try(local.auth_rules[count.index].device_assurances_included, [])
-  groups_included             = try(local.auth_rules[count.index].groups_included, [])
-  groups_excluded             = try(local.auth_rules[count.index].groups_excluded, [])
-  users_included              = try(local.auth_rules[count.index].users_included, [])
-  users_excluded              = try(local.auth_rules[count.index].users_excluded, [])
-  user_types_included         = try(local.auth_rules[count.index].user_types_included, [])
-  user_types_excluded         = try(local.auth_rules[count.index].user_types_excluded, [])
-
-  dynamic "platform_include" {
-    for_each = try(local.auth_rules[count.index].platform_include, [])
-    content {
-      os_type = platform_include.value.os_type
-      type    = platform_include.value.type
-    }
-  }
-}
-
-
-locals {
   // Condensed Admin Note         
   admin_note = {
     name = var.admin_note.saas_mgmt_name
@@ -245,6 +61,9 @@ locals {
     owner = var.admin_note.app_owner
     audit = var.admin_note.last_access_audit_date
   }
+  // Authentication policy
+  authentication_policy_id = contains(["low", "medium", "high"], var.authentication_policy) ? var.environment.authentication_policy_ids[var.authentication_policy] : var.authentication_policy
+
   // Basic App Settings to get right. 
   saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
   recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
@@ -310,7 +129,7 @@ locals {
           "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
           "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
           "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-        }, var.saml_app.group_attribute_statements.namespace, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+        }, var.saml_app.group_attribute_statements.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
         filterType  = "REGEX"
         filterValue = local.group_attribute_statements_regex
       }
@@ -339,6 +158,7 @@ resource "okta_app_saml" "saml_app" {
   label                            = local.saml_label
   status                           = var.saml_app.status
   preconfigured_app                = var.saml_app.preconfigured_app
+
   
   // Visual/UI settings
   logo                             = var.saml_app.logo
@@ -354,7 +174,7 @@ resource "okta_app_saml" "saml_app" {
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
   
   // Authentication policy
-  authentication_policy            = okta_app_signon_policy.authentication_policy.id
+  authentication_policy            = local.authentication_policy_id
   implicit_assignment              = var.saml_app.implicit_assignment
   
   // User management settings
@@ -399,11 +219,25 @@ resource "okta_app_saml" "saml_app" {
   // Certificate settings
   key_name                         = var.saml_app.key_name
   key_years_valid                  = var.saml_app.key_years_valid
-  
-  // App settings (JSON format)
+
+    // App settings (JSON format)
   app_settings_json                = jsonencode(local.app_settings)
+  
 }
 
+resource "okta_app_user_base_schema_property" "properties" {
+  for_each = { for idx, prop in var.base_schema : prop.index => prop }
+  
+  app_id      = okta_app_saml.saml_app.id
+  index       = each.value.index
+  title       = each.value.title
+  type        = each.value.type
+  master      = each.value.master
+  pattern     = each.value.pattern
+  permissions = each.value.permissions
+  required    = each.value.required
+  user_type   = each.value.user_type
+}
 
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
@@ -415,6 +249,48 @@ resource "okta_app_group_assignments" "main_app" {
       id       = group_id.value
       profile  = jsonencode(local.roles[group_id.key].profile)
       priority = tonumber(group_id.key) + 1
+    }
+  }
+}
+
+resource "okta_app_user_schema_property" "custom_properties" {
+  for_each = { for idx, prop in var.custom_schema : prop.index => prop }
+
+  app_id      = okta_app_saml.saml_app.id
+  index       = each.value.index
+  title       = each.value.title
+  type        = each.value.type
+  description = each.value.description
+  master      = each.value.master
+  scope       = each.value.scope
+  
+  # Optional properties
+  dynamic "array_one_of" {
+    for_each = each.value.array_one_of != null ? each.value.array_one_of : []
+    content {
+      const = array_one_of.value.const
+      title = array_one_of.value.title
+    }
+  }
+  
+  array_enum         = each.value.array_enum
+  array_type         = each.value.array_type
+  enum               = each.value.enum
+  external_name      = each.value.external_name
+  external_namespace = each.value.external_namespace
+  max_length         = each.value.max_length
+  min_length         = each.value.min_length
+  permissions        = each.value.permissions
+  required           = each.value.required
+  union              = each.value.union
+  unique             = each.value.unique
+  user_type          = each.value.user_type
+  
+  dynamic "one_of" {
+    for_each = each.value.one_of != null ? each.value.one_of : []
+    content {
+      const = one_of.value.const
+      title = one_of.value.title
     }
   }
 }
