@@ -152,7 +152,7 @@ variable "saml_app" {
 
     // User management settings
     user_name_template             = optional(string, "$${source.login}")
-    user_name_template_push_status = optional(string, null)
+    user_name_template_push_status = optional(string, "PUSH")
     user_name_template_suffix      = optional(string, null)
     user_name_template_type        = optional(string, "BUILT_IN")
     inline_hook_id                 = optional(string, null)
@@ -260,24 +260,19 @@ variable "saml_app" {
     error_message = "subject_name_id_format must be a valid SAML NameID format URN."
   }
 
-  # Validate key_years_valid (if provided)
-  validation {
-    condition = var.saml_app == null || (
-      var.saml_app.key_years_valid == null ||
-      (var.saml_app.key_years_valid >= 2 && var.saml_app.key_years_valid <= 10)
+# Validate key_years_valid range and that it's provided when key_name is specified
+validation {
+  condition = var.saml_app == null || (
+    (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
+    (
+      var.saml_app.key_name != null && 
+      var.saml_app.key_years_valid != null && 
+      var.saml_app.key_years_valid >= 2 && 
+      var.saml_app.key_years_valid <= 10
     )
-    error_message = "key_years_valid must be between 2 and 10 years."
-  }
-
-  # Validate that key_name and key_years_valid are set together
-  validation {
-    condition = var.saml_app == null || (
-      (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) ||
-      (var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
-    )
-    error_message = "key_name and key_years_valid must be set together."
-  }
-
+  )
+  error_message = "When key_name is specified, key_years_valid must be provided and be between 2 and 10 years."
+}
   # Validate user attribute statements
   validation {
     condition = var.saml_app == null || (
