@@ -314,7 +314,7 @@ variable "roles" {
     name                = string
     attribute_statement = optional(bool, false)
     claim               = optional(bool, false)
-    profile             = optional(map(string),{}) # Changed from map(any) for better type safety
+    profile             = optional(map(string),{}) 
   }))
 
   default = [{

@@ -91,11 +91,9 @@ module "okta_app" {
       }
     },
     {
-      name                = "User"
+      name                = "Assignment"
       attribute_statement = true
-      profile             = {
-        role = "user"
-      }
+      profile             = {}
     }
   ]
   
