@@ -134,8 +134,8 @@ module "okta_app" {
 
 ## Outputs
 
- Name  Description  saml_app  Created SAML application details  app_url  URL for the application  app_metadata  SAML application metadata  app_settings  SAML application settings  admin_note_details  Admin note details for the application  authentication_policy_info  Authentication policy information if configured  app_roles  Application roles configuration 
-
+ Name  Description  `saml_app`  SAML application details (id, label, status, sign-on mode, entity ID, metadata URL)  `app_url`  Application embed URL  `app_settings`  SAML settings (SSO URL, audience, subject format)  `admin_note_details`  Admin configuration (management info, owner, lifecycle settings)  `app_roles`  Application roles configuration 
+ 
 ## SAML Application Configuration
 
 The module supports extensive configuration options for SAML applications through the `saml_app` variable. This includes:

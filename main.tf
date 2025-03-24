@@ -109,8 +109,7 @@ locals {
     join("|", [for role in local.attribute_statement_roles : upper(role.name)])
   ) : "^$"
 
-  group_attribute_statements = var.saml_app.group_attribute_statements != null ? {
-    attributeStatements = [
+  group_attribute_statements = var.saml_app.group_attribute_statements != null ? [
       {
         type = "GROUP"
         name = var.saml_app.group_attribute_statements.name
@@ -122,24 +121,17 @@ locals {
         filterType  = "REGEX"
         filterValue = local.group_attribute_statements_regex
       }
-  ] } : null
+  ] : null
 
   // Combine user and group attribute statements with custom_settings var to be pushed through settings
-  attribute_statements_combined = {
-    attributeStatements = concat(
+  attribute_statements_combined = concat(
       var.saml_app.user_attribute_statements != null ? local.user_attribute_statements : [],
-      var.saml_app.group_attribute_statements != null ? local.group_attribute_statements.attributeStatements : []
+      var.saml_app.group_attribute_statements != null ? local.group_attribute_statements : []
     )
-  }
 
-  attribute_statements_map = length(local.attribute_statements_combined.attributeStatements) > 0 ? {
-    attribute_statements = local.attribute_statements_combined
-  } : {}
 
-  app_settings = merge(
-    var.saml_app.custom_settings != null ? var.saml_app.custom_settings : {},
-    local.attribute_statements_map
-  )
+    app_settings = var.saml_app.custom_settings != null ? var.saml_app.custom_settings : {}
+
 }
 
 resource "okta_app_saml" "saml_app" {
@@ -210,9 +202,25 @@ resource "okta_app_saml" "saml_app" {
   key_years_valid = var.saml_app.key_years_valid
 
   // App settings (JSON format)
-  app_settings_json = jsonencode(local.app_settings)
+  app_settings_json = jsonencode(var.saml_app.custom_settings)
 
-}
+    dynamic "attribute_statements" {
+      for_each = local.attribute_statements_combined 
+      content {
+        name      = attribute_statements.value.name
+        namespace = attribute_statements.value.namespace
+        type      = attribute_statements.value.type
+
+        #Only set these if type is EXPRESSION
+        values    = attribute_statements.value.type == "EXPRESSION" ? attribute_statements.value.values : null
+        
+        # Only set these if type is GROUP
+        filter_type  = attribute_statements.value.type == "GROUP" ? attribute_statements.value.filterType : null
+        filter_value = attribute_statements.value.type == "GROUP" ? attribute_statements.value.filterValue : null
+      }
+    }
+  }
+
 
 resource "okta_app_user_base_schema_property" "properties" {
   for_each = { for idx, prop in var.base_schema : prop.index => prop }
