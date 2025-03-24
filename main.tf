@@ -130,7 +130,7 @@ locals {
     )
 
 
-    app_settings = var.saml_app.custom_settings != null ? var.saml_app.custom_settings : {}
+    app_settings = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
 
 }
 
@@ -202,7 +202,7 @@ resource "okta_app_saml" "saml_app" {
   key_years_valid = var.saml_app.key_years_valid
 
   // App settings (JSON format)
-  app_settings_json = jsonencode(var.saml_app.custom_settings)
+  app_settings_json = local.app_settings
 
     dynamic "attribute_statements" {
       for_each = local.attribute_statements_combined 
