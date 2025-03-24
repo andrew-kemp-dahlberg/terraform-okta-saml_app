@@ -16,15 +16,6 @@ output "app_url" {
   value       = okta_app_saml.saml_app.embed_url
 }
 
-output "app_metadata" {
-  description = "SAML application metadata"
-  value = {
-    entity_id    = okta_app_saml.saml_app.entity_url
-    metadata_url = okta_app_saml.saml_app.metadata_url
-    certificate  = okta_app_saml.saml_app.certificate
-  }
-}
-
 output "app_settings" {
   description = "SAML application settings"
   value = {
