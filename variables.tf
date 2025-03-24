@@ -152,7 +152,7 @@ variable "saml_app" {
 
     // User management settings
     user_name_template             = optional(string, "$${source.login}")
-    user_name_template_push_status = optional(string, "PUSH")
+    user_name_template_push_status = optional(string, null)
     user_name_template_suffix      = optional(string, null)
     user_name_template_type        = optional(string, "BUILT_IN")
     inline_hook_id                 = optional(string, null)
@@ -200,13 +200,13 @@ variable "saml_app" {
   }
 
   # Validate user_name_template_push_status
-  validation {
-    condition = var.saml_app == null || (
-      var.saml_app.user_name_template_push_status == null ||
-      contains(["PUSH", "DONT_PUSH"], var.saml_app.user_name_template_push_status)
-    )
-    error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
-  }
+  # validation {
+  #   condition = var.saml_app == null || (
+  #     var.saml_app.user_name_template_push_status == null ||
+  #     contains(["PUSH", "DONT_PUSH"], var.saml_app.user_name_template_push_status)
+  #   )
+  #   error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
+  # }
 
   # Validate user_name_template_type
   validation {
@@ -314,7 +314,7 @@ variable "roles" {
     name                = string
     attribute_statement = optional(bool, false)
     claim               = optional(bool, false)
-    profile             = map(string) # Changed from map(any) for better type safety
+    profile             = optional(map(string),{}) # Changed from map(any) for better type safety
   }))
 
   default = [{
