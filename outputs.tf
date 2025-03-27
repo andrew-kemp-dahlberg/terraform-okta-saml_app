@@ -6,7 +6,6 @@ output "saml_app" {
     status       = okta_app_saml.saml_app.status
     sign_on_mode = okta_app_saml.saml_app.sign_on_mode
     entity_id    = okta_app_saml.saml_app.entity_url
-    metadata_url = okta_app_saml.saml_app.metadata_url
   }
 }
 
