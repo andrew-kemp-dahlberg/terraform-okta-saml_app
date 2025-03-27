@@ -81,7 +81,6 @@ locals {
   user_name_template_type = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.user_name_template_type, "BUILT_IN") : var.saml_app.user_name_template_type
 
 
-
   //Formatting user attribute statements from saml_app variable
   user_attribute_statements = var.saml_app.user_attribute_statements == null ? null : [
     for attr in var.saml_app.user_attribute_statements : {
@@ -128,8 +127,7 @@ locals {
       var.saml_app.user_attribute_statements != null ? local.user_attribute_statements : [],
       var.saml_app.group_attribute_statements != null ? local.group_attribute_statements : []
     )
-
-
+    
     app_settings = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
 
 }
