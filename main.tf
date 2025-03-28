@@ -55,8 +55,8 @@ locals {
 
   // Basic App Settings to get right. 
   saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
-  recipient   = local.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
-  destination = local.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
+  recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
+  destination = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
 
 
   //Formatting user attribute statements from saml_app variable
@@ -153,8 +153,8 @@ resource "okta_app_saml" "saml_app" {
   // Endpoint configuration
   acs_endpoints       = var.saml_app.acs_endpoints
   sso_url             = var.saml_app.sso_url
-  destination         = var.saml_app.destination
-  recipient           = var.saml_app.recipient
+  destination         = local.destination
+  recipient           = local.recipient
   audience            = var.saml_app.audience
   default_relay_state = var.saml_app.default_relay_state
   sp_issuer           = var.saml_app.sp_issuer
