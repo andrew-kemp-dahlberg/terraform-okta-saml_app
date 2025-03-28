@@ -55,8 +55,8 @@ locals {
 
   // Basic App Settings to get right. 
   saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
-  recipient   = local.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
-  destination = local.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
+  recipient   = local.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
+  destination = local.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
 
 
   //Formatting user attribute statements from saml_app variable
