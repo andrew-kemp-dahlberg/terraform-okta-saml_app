@@ -219,6 +219,18 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 
+locals {
+  base_schema_url =  "https://${var.environment.org_name}.${var.environment.org_url}/api/v1/meta/schemas/apps/${okta_app_saml.saml_app.id}/default"
+}
+
+data "http" "source" {
+  url = local.base_schema_url
+  method = "GET"
+  request_headers = {
+    Accept = "application/json"
+    Authorization = "SSWS ${var.environment.access_token}"
+  }
+}
 
 resource "okta_app_user_base_schema_property" "properties" {
   for_each = { for idx, prop in var.base_schema : prop.index => prop }
@@ -234,19 +246,6 @@ resource "okta_app_user_base_schema_property" "properties" {
   user_type   = each.value.user_type
 }
 
-resource "okta_app_group_assignments" "main_app" {
-  app_id = okta_app_saml.saml_app.id
-
-  dynamic "group" {
-    for_each = okta_group.assignment_groups[*].id
-    iterator = group_id
-    content {
-      id       = group_id.value
-      profile  = jsonencode(var.roles[group_id.key].profile)
-      priority = tonumber(group_id.key) + 1
-    }
-  }
-}
 
 resource "okta_app_user_schema_property" "custom_properties" {
   for_each = { for idx, prop in var.custom_schema : prop.index => prop }
@@ -286,6 +285,20 @@ resource "okta_app_user_schema_property" "custom_properties" {
     content {
       const = one_of.value.const
       title = one_of.value.title
+    }
+  }
+}
+
+resource "okta_app_group_assignments" "main_app" {
+  app_id = okta_app_saml.saml_app.id
+
+  dynamic "group" {
+    for_each = okta_group.assignment_groups[*].id
+    iterator = group_id
+    content {
+      id       = group_id.value
+      profile  = jsonencode(var.roles[group_id.key].profile)
+      priority = tonumber(group_id.key) + 1
     }
   }
 }
