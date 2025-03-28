@@ -31,11 +31,11 @@ output "admin_note_details" {
     accounting_name = var.admin_note.accounting_name
     sso_enforced    = var.admin_note.sso_enforced
     app_owner       = var.admin_note.app_owner
-    lifecycle = {
-      provisioning   = var.admin_note.lifecycle_automations.provisioning.type
-      user_updates   = var.admin_note.lifecycle_automations.user_updates.type
-      deprovisioning = var.admin_note.lifecycle_automations.deprovisioning.type
-    }
+    # lifecycle = {
+    #   provisioning   = var.admin_note.lifecycle_automations.provisioning.type
+    #   user_updates   = var.admin_note.lifecycle_automations.user_updates.type
+    #   deprovisioning = var.admin_note.lifecycle_automations.deprovisioning.type
+    # }
     last_audit_date = var.admin_note.last_access_audit_date
   }
 }
@@ -47,6 +47,5 @@ output "app_roles" {
 
 output "schema" {
   description = "Current app default schema"
-  value       = data.http.schema
-  sensitive   = true
+  value       = local.schema_transformation_status
 }

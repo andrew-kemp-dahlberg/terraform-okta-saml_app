@@ -53,54 +53,11 @@ variable "admin_note" {
     saas_mgmt_name  = string
     accounting_name = string
     sso_enforced    = bool
-    lifecycle_automations = object({
-      provisioning = object({
-        type = string
-        link = string
-      })
-      user_updates = object({
-        type = string
-        link = string
-      })
-      deprovisioning = object({
-        type = string
-        link = string
-      })
-    })
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
     additional_notes       = string
   })
-
-  validation {
-    condition = alltrue([
-      contains(["SCIM", "HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle_automations.provisioning.type),
-      contains(["SCIM", "HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle_automations.user_updates.type),
-      contains(["SCIM", "HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle_automations.deprovisioning.type)
-    ])
-    error_message = "Lifecycle automation methods must be one of: SCIM, HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
-  }
-
-  validation {
-    condition = alltrue([
-      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.provisioning.type)) ||
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.provisioning.link)) ||
-      var.admin_note.lifecycle_automations.provisioning.link == "",
-
-      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.user_updates.type)) ||
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.user_updates.link)) ||
-      var.admin_note.lifecycle_automations.user_updates.link == "",
-
-      (contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle_automations.deprovisioning.type)) ||
-      can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle_automations.deprovisioning.link)) ||
-      var.admin_note.lifecycle_automations.deprovisioning.link == ""
-    ])
-    error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
-  }
 
   validation {
     condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
@@ -368,6 +325,62 @@ variable "roles" {
   }
 }
 
+variable "scim" {
+  description = "How the application is provisioned"
+  type = object({
+    enabled = optional(bool, false)
+
+    features = optional(object({
+      create = optional(bool, false)
+      update = optional(bool, false)
+      deactivate = optional(bool, false)
+    }), null)
+    
+    other_automation = optional(object({
+      create = object({
+        type = string
+        link = string
+      })
+      update = object({
+        type = string
+        link = string
+      })
+      deactivate = object({
+        type = string
+        link = string
+      })
+    }), null)
+  })
+
+#   validation {
+#     condition = var.scim.other_automation == null || alltrue([
+#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.scim.other_automation.create.type)),
+#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.scim.other_automation.update.type)),
+#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.scim.deprovisioning.type))
+#     ])
+#     error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+#   }
+
+#   validation {
+#     condition = var.scim.other_automation == null || alltrue([
+#       try((contains(["HRIS", "None"], var.scim.other_automation.create.type)))||
+#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.create.link))) ||
+#       try(var.scim.other_automation.create.link == ""),
+
+#       try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.update.type))) ||
+#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.update.link))) ||
+#       try(var.scim.other_automation.update.link == ""),
+
+#       try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.deprovisioning.type))) ||
+#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.deprovisioning.link))) ||
+#       try(var.scim.other_automation.deprovisioning.link == "")
+#     ])
+#     error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
+#   }
+}
 
 variable "base_schema" {
   description = "List of application user base schema properties to configure"
@@ -503,6 +516,11 @@ variable "custom_schema" {
     ])
     error_message = "Array type must be specified when type is set to array."
   }
+}
+
+variable "schema_transformation_behavior_override" {
+  default = false
+  description = "There is behavior when SCIM is enabled to modify base schema so that configurations don't error. Setting this value to true overrides that behavior and Terraform will attempt to apply base schema in configuration"
 }
 
 

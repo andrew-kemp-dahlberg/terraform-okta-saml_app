@@ -42,11 +42,11 @@ locals {
   admin_note = {
     name = var.admin_note.saas_mgmt_name
     sso  = var.admin_note.sso_enforced
-    auto = distinct([
-      var.admin_note.lifecycle_automations.provisioning.type,
-      var.admin_note.lifecycle_automations.user_updates.type,
-      var.admin_note.lifecycle_automations.deprovisioning.type
-    ])
+    # auto = distinct([
+    #   var.admin_note.lifecycle_automations.provisioning.type,
+    #   var.admin_note.lifecycle_automations.user_updates.type,
+    #   var.admin_note.lifecycle_automations.deprovisioning.type
+    # ])
     owner = var.admin_note.app_owner
     audit = var.admin_note.last_access_audit_date
   }
@@ -204,6 +204,31 @@ data "http" "schema" {
     Accept = "application/json"
     Authorization = "SSWS ${var.environment.api_token}"
   }
+}
+
+locals {
+  schema_transformation_status = var.scim.enabled == true && var.schema_transformation_behavior_override == false && jsondecode(
+  data.http.schema.response_body).definitions.base == {
+
+  "id" = "#base"
+  "properties" = {
+    "userName" = {
+      "master" = {
+        "type" = "PROFILE_MASTER"
+      }
+      "maxLength" = 100
+      "required" = true
+      "scope" = "NONE"
+      "title" = "Username"
+      "type" = "string"
+    }
+  }
+  "required" = [
+    "userName",
+  ]
+  "type" = "object"
+} ? "Pretransformation" : "transformed"
+
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
