@@ -55,8 +55,8 @@ locals {
 
   // Basic App Settings to get right. 
   saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
-  recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
-  destination = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
+  recipient   = local.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
+  destination = local.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
 
 
   //Formatting user attribute statements from saml_app variable
@@ -102,8 +102,7 @@ locals {
       var.saml_app.user_attribute_statements != null ? local.user_attribute_statements : [],
       var.saml_app.group_attribute_statements != null ? local.group_attribute_statements : []
     )
-    
-    app_settings = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
+  app_settings = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
 
 }
 
@@ -195,7 +194,7 @@ resource "okta_app_saml" "saml_app" {
   }
 
 locals {
-  base_schema_url =  "https://${var.environment.org_name}.${var.environment.org_url}/api/v1/meta/schemas/apps/${okta_app_saml.saml_app.id}/default"
+  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${okta_app_saml.saml_app.id}/default"
 }
 
 data "http" "source" {
@@ -203,7 +202,7 @@ data "http" "source" {
   method = "GET"
   request_headers = {
     Accept = "application/json"
-    Authorization = "SSWS ${var.environment.access_token}"
+    Authorization = "SSWS ${var.environment.api_token}"
   }
 }
 

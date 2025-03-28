@@ -28,7 +28,7 @@ variable "environment" {
   type = object({
     org_name       = string
     base_url       = string
-    access_token   = string
+    api_token   = string
     authentication_policy_ids = object({
       high   = optional(string)
       medium = optional(string)
