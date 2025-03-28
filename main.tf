@@ -73,9 +73,6 @@ locals {
     }
   ]
 
-  //Formatting group attribute statements & adding filter based on groups that are flagged to be added.
-  group_attribute_exists = local.group_attribute_statements != null ? 1 : 0
-
   attribute_statement_roles = [
     for role in var.roles : role
     if role.attribute_statement == true
