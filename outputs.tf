@@ -44,3 +44,9 @@ output "app_roles" {
   description = "Application roles configuration"
   value       = var.roles
 }
+
+output "schema" {
+  description = "Current app default schema"
+  value       = data.http.schema
+  sensitive   = true
+}

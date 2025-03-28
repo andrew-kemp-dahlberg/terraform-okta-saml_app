@@ -197,7 +197,7 @@ locals {
   base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${okta_app_saml.saml_app.id}/default"
 }
 
-data "http" "source" {
+data "http" "schema" {
   url = local.base_schema_url
   method = "GET"
   request_headers = {
