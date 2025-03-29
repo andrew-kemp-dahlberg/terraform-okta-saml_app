@@ -207,8 +207,8 @@ data "http" "schema" {
 }
 
 locals {
-  schema_transformation_status = var.scim.enabled == true && var.schema_transformation_behavior_override == false && jsondecode(
-  data.http.schema.response_body).definitions.base == {
+  schema_transformation_status = okta_app_saml.saml_app.features == tomap(
+    {})&& jsondecode(data.http.schema.response_body).definitions.base == {
 
   "id" = "#base"
   "properties" = {
@@ -227,7 +227,27 @@ locals {
     "userName",
   ]
   "type" = "object"
-} ? "Pretransformation" : "transformed"
+  } && var.base_schema != [{
+    index       = "userName"
+    master      = "PROFILE_MASTER"
+    pattern     = null
+    permissions = "READ_ONLY"
+    required    = true
+    title       = "Username"
+    type        = "string"
+    user_type   = "default"
+  }] ? "pre-transformation" : "transformed or no transformation required"
+
+  base_schema = local.schema_transformation_status == "pre-transformation" ? [{
+    index       = "userName"
+    master      = "PROFILE_MASTER"
+    pattern     = null
+    permissions = "READ_ONLY"
+    required    = true
+    title       = "Username"
+    type        = "string"
+    user_type   = "default"
+  }] : var.base_schema
 
 }
 

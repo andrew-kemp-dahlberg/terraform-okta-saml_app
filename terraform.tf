@@ -18,7 +18,7 @@ terraform {
 
 
 provider "okta" {
-  org_name       = var.environment.org_name
-  base_url       = var.environment.base_url
-  api_token   = var.environment.api_token
+  org_name  = var.environment.org_name
+  base_url  = var.environment.base_url
+  api_token = var.environment.api_token
 }

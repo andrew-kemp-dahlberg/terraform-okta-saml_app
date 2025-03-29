@@ -45,6 +45,11 @@ output "app_roles" {
   value       = var.roles
 }
 
+output "features" {
+  description = "Application features primarily SCIM"
+  value       = okta_app_saml.saml_app.features
+}
+
 output "schema" {
   description = "Current app default schema"
   value       = local.schema_transformation_status

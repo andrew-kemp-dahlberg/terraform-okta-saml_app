@@ -518,11 +518,6 @@ variable "custom_schema" {
   }
 }
 
-variable "schema_transformation_behavior_override" {
-  default = false
-  description = "There is behavior when SCIM is enabled to modify base schema so that configurations don't error. Setting this value to true overrides that behavior and Terraform will attempt to apply base schema in configuration"
-}
-
 
 
 
