@@ -57,6 +57,7 @@ locals {
   saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
   recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
   destination = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
+  app_links_json = var.saml_app.app_links != null ? jsonencode(var.saml_app.app_links) : null
 
 
   //Formatting user attribute statements from saml_app variable
@@ -175,7 +176,9 @@ resource "okta_app_saml" "saml_app" {
 
   // App settings (JSON format)
   app_settings_json = local.app_settings
+  app_links_json    = local.app_links_json
 
+  //Attribute statements
     dynamic "attribute_statements" {
       for_each = local.attribute_statements_combined 
       content {
@@ -192,51 +195,88 @@ resource "okta_app_saml" "saml_app" {
       }
     }
   }
+locals {
+  find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?q=${local.saml_label}&filter=status eq \"ACTIVE\"&includeNonDeleted=false"
+  config_applied = try(length(okta_app_saml.saml_app)) > 0 ? 1 : 0 
+
+}
+
+data "http" "saml_app" {
+  url = local.find_app_url
+    method = "GET"
+    request_headers = {
+      Accept = "application/json"
+      Authorization = "SSWS ${var.environment.api_token}"
+  }
+}
 
 locals {
-  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${okta_app_saml.saml_app.id}/default"
+  http_saml_app = try(jsondecode(data.http.saml_app.response_body), [])
+  app_id_list = [
+    for app in local.http_saml_app : app.id
+  ]
+  potential_match = length(local.app_id_list) == 0 ? "not applied" : "potential match"
+
+  saml_app_id = try(local.app_id_list[0],"none")
+  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
+  schema_api_call = [{
+    url = local.base_schema_url
+    method = "GET"
+    request_headers = {
+      Accept = "application/json"
+      Authorization = "SSWS ${var.environment.api_token}"
+  }}]
 }
 
 data "http" "schema" {
-  url = local.base_schema_url
-  method = "GET"
-  request_headers = {
-    Accept = "application/json"
-    Authorization = "SSWS ${var.environment.api_token}"
+    url = local.base_schema_url
+    method = "GET"
+    request_headers = {
+      Accept = "application/json"
+      Authorization = "SSWS ${var.environment.api_token}"
   }
 }
 
 locals {
-  schema_transformation_status = okta_app_saml.saml_app.features == tomap(
-    {})&& jsondecode(data.http.schema.response_body).definitions.base == {
-
-  "id" = "#base"
-  "properties" = {
-    "userName" = {
-      "master" = {
-        "type" = "PROFILE_MASTER"
-      }
-      "maxLength" = 100
-      "required" = true
-      "scope" = "NONE"
-      "title" = "Username"
-      "type" = "string"
-    }
-  }
-  "required" = [
-    "userName",
-  ]
-  "type" = "object"
-  } && var.base_schema != [{
-    index       = "userName"
-    master      = "PROFILE_MASTER"
-    pattern     = null
-    permissions = "READ_ONLY"
-    required    = true
-    title       = "Username"
-    type        = "string"
-    user_type   = "default"
-  }] ? "pre-transformation" : "transformed or no transformation required"
+  current_schema = try(jsondecode(data.http.schema.response_body), {})
+  http_schema = length(data.http.schema) > 0 ? data.http.schema.response_body : "\"status\" = \"pre-apply\""
+  # First check if the response is an error
+  schema_is_error = try(jsondecode(local.http_schema).errorCode != null, false)
+  
+  # If there's an error or the structure doesn't match expectations, consider it "pre-transformation"
+  schema_transformation_status = local.schema_is_error ? "pre-transformation" : (
+    try(
+      jsondecode(local.http_schema).definitions.base == {
+        "id" = "#base"
+        "properties" = {
+          "userName" = {
+            "master" = {
+              "type" = "PROFILE_MASTER"
+            }
+            "maxLength" = 100
+            "required" = true
+            "scope" = "NONE"
+            "title" = "Username"
+            "type" = "string"
+          }
+        }
+        "required" = [
+          "userName",
+        ]
+        "type" = "object"
+      } && var.base_schema != [{
+        index       = "userName"
+        master      = "PROFILE_MASTER"
+        pattern     = null
+        permissions = "READ_ONLY"
+        required    = true
+        title       = "Username"
+        type        = "string"
+        user_type   = "default"
+      }],
+      false
+    ) ? "pre-transformation" : "transformed or no transformation required"
+  )
 
   base_schema = local.schema_transformation_status == "pre-transformation" ? [{
     index       = "userName"
@@ -248,21 +288,20 @@ locals {
     type        = "string"
     user_type   = "default"
   }] : var.base_schema
-
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
-  for_each = { for idx, prop in local.base_schema : prop.index => prop }
+  count = length(local.base_schema)
 
   app_id      = okta_app_saml.saml_app.id
-  index       = each.value.index
-  title       = each.value.title
-  type        = each.value.type
-  master      = each.value.master
-  pattern     = each.value.pattern
-  permissions = each.value.permissions
-  required    = each.value.required
-  user_type   = each.value.user_type
+  index       = local.base_schema[count.index].index
+  title       = local.base_schema[count.index].title
+  type        = local.base_schema[count.index].type
+  master      = local.base_schema[count.index].master
+  pattern     = local.base_schema[count.index].pattern
+  permissions = local.base_schema[count.index].permissions
+  required    = local.base_schema[count.index].required
+  user_type   = local.base_schema[count.index].user_type
 }
 
 

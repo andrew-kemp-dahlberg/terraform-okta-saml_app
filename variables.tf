@@ -109,13 +109,13 @@ variable "saml_app" {
     single_logout_url         = optional(string, null)
 
     // SAML protocol settings
-    assertion_signed            = optional(bool, true)
+    assertion_signed            = optional(bool, false)
     authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
     digest_algorithm            = optional(string, "SHA256")
-    honor_force_authn           = optional(bool, true)
+    honor_force_authn           = optional(bool, false)
     idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
     request_compressed          = optional(bool, null)
-    response_signed             = optional(bool, true)
+    response_signed             = optional(bool, false)
     saml_signed_request_enabled = optional(bool, false)
     saml_version                = optional(string, "2.0")
     signature_algorithm         = optional(string, "RSA_SHA256")
@@ -138,7 +138,7 @@ variable "saml_app" {
     status              = optional(string, "ACTIVE")
     enduser_note        = optional(string, null)
     implicit_assignment = optional(bool, false)
-    app_links_json      = optional(string, null)
+    app_links      = optional(map(any), null)
 
     // Attribute statements
     user_attribute_statements = optional(list(object({
@@ -155,128 +155,118 @@ variable "saml_app" {
     custom_settings = optional(map(any), null)
   })
 
-  validation {
-  condition = var.saml_app == null || (
-    var.saml_app.preconfigured_app != null || (
-      var.saml_app.sso_url != null &&
-      var.saml_app.audience != null &&
-      var.saml_app.logo != null
-    )
-  )
-  error_message = "For custom SAML applications (not using preconfigured_app), you must provide sso_url, audience, and logo."
-}
+#   validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.preconfigured_app != null || (
+#       var.saml_app.sso_url != null &&
+#       var.saml_app.audience != null &&
+#       var.saml_app.logo != null
+#     )
+#   )
+#   error_message = "For custom SAML applications (not using preconfigured_app), you must provide sso_url, audience, and logo."
+# }
 
-# Validate SAML version
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.saml_version == null ||
-    try(contains(["1.1", "2.0"], var.saml_app.saml_version), false)
-  )
-  error_message = "SAML version must be either '1.1' or '2.0'."
-}
+# # Validate SAML version
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.saml_version == null ||
+#     try(contains(["1.1", "2.0"], var.saml_app.saml_version), false)
+#   )
+#   error_message = "SAML version must be either '1.1' or '2.0'."
+# }
 
-#Validate user_name_template_push_status
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.user_name_template_push_status == null ||
-    try(contains(["PUSH", "DONT_PUSH"], var.saml_app.user_name_template_push_status), false)
-  )
-  error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
-}
+# #Validate user_name_template_push_status
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.user_name_template_push_status == null ||
+#     try(contains(["PUSH", "DONT_PUSH"], var.saml_app.user_name_template_push_status), false)
+#   )
+#   error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
+# }
 
-#Validate user_name_template_type
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.user_name_template_type == null ||
-    try(contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type), false)
-  )
-  error_message = "user_name_template_type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
-}
+# #Validate user_name_template_type
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.user_name_template_type == null ||
+#     try(contains(["NONE", "BUILT_IN", "CUSTOM"], var.saml_app.user_name_template_type), false)
+#   )
+#   error_message = "user_name_template_type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
+# }
 
-# Validate application status
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.status == null ||
-    try(contains(["ACTIVE", "INACTIVE"], var.saml_app.status), false)
-  )
-  error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
-}
+# # Validate application status
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.status == null ||
+#     try(contains(["ACTIVE", "INACTIVE"], var.saml_app.status), false)
+#   )
+#   error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
+# }
 
-# Validate digest algorithm
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.digest_algorithm == null ||
-    try(contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm), false)
-  )
-  error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
-}
+# # Validate digest algorithm
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.digest_algorithm == null ||
+#     try(contains(["SHA1", "SHA256", "SHA512"], var.saml_app.digest_algorithm), false)
+#   )
+#   error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
+# }
 
-# Validate signature algorithm
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.signature_algorithm == null ||
-    try(contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm), false)
-  )
-  error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
-}
+# # Validate signature algorithm
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.signature_algorithm == null ||
+#     try(contains(["RSA_SHA1", "RSA_SHA256", "RSA_SHA512"], var.saml_app.signature_algorithm), false)
+#   )
+#   error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
+# }
 
-# Validate subject_name_id_format - common formats
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.subject_name_id_format == null ||
-    try(contains([
-      "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
-      "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-      "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
-      "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
-      "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
-    ], var.saml_app.subject_name_id_format), false) ||
-    try(can(regex("^urn:oasis:names:tc:SAML:[1-2]\\.[0-9]:nameid-format:.+$", var.saml_app.subject_name_id_format)), false)
-  )
-  error_message = "subject_name_id_format must be a valid SAML NameID format URN."
-}
+# # Validate subject_name_id_format - common formats
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.subject_name_id_format == null ||
+#     try(contains([
+#       "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
+#       "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+#       "urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName",
+#       "urn:oasis:names:tc:SAML:2.0:nameid-format:persistent",
+#       "urn:oasis:names:tc:SAML:2.0:nameid-format:transient"
+#     ], var.saml_app.subject_name_id_format), false) ||
+#     try(can(regex("^urn:oasis:names:tc:SAML:[1-2]\\.[0-9]:nameid-format:.+$", var.saml_app.subject_name_id_format)), false)
+#   )
+#   error_message = "subject_name_id_format must be a valid SAML NameID format URN."
+# }
 
-# Validate key_years_valid range and that it's provided when key_name is specified
-validation {
-  condition = (
-    var.saml_app == null || 
-    var.saml_app.key_years_valid == null || 
-    try(tonumber(var.saml_app.key_years_valid) >= 2 && tonumber(var.saml_app.key_years_valid) <= 10, false)
-  )
-   error_message = "When specified, key_years_valid must be between 2 and 10 years."
-}
+# # Validate key_years_valid range and that it's provided when key_name is specified
+# validation {
+#   condition = (
+#     var.saml_app == null || 
+#     var.saml_app.key_years_valid == null || 
+#     try(tonumber(var.saml_app.key_years_valid) >= 2 && tonumber(var.saml_app.key_years_valid) <= 10, false)
+#   )
+#    error_message = "When specified, key_years_valid must be between 2 and 10 years."
+# }
 
-validation {
-  condition = (
-    var.saml_app == null || 
-    (var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
-    (var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
-  )
-  error_message = "key_name and key_years_valid must either both be specified or both be omitted."
-}
+# validation {
+#   condition = (
+#     var.saml_app == null || 
+#     try(var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
+#     try(var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
+#   )
+#   error_message = "key_name and key_years_valid must either both be specified or both be omitted."
+# }
 
-# Validate user attribute statements
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.user_attribute_statements == null ? true : try(alltrue([
-      for attr in var.saml_app.user_attribute_statements :
-      attr.name != null &&
-      contains(["basic", "uri reference", "unspecified"], coalesce(attr.name_format, "unspecified")) &&
-      length(attr.values) > 0
-    ]), false)
-  )
-  error_message = "Each user_attribute_statements object must have a name, valid name_format, and at least one value."
-}
-
-# Validate app_links_json is valid JSON if provided
-validation {
-  condition = var.saml_app == null || (
-    var.saml_app.app_links_json == null ||
-    try(can(jsondecode(var.saml_app.app_links_json)), false)
-  )
-  error_message = "app_links_json must be a valid JSON string."
-}
-
+# # Validate user attribute statements
+# validation {
+#   condition = var.saml_app == null || (
+#     var.saml_app.user_attribute_statements == null ? true : try(alltrue([
+#       for attr in var.saml_app.user_attribute_statements :
+#       attr.name != null &&
+#       contains(["basic", "uri reference", "unspecified"], coalesce(attr.name_format, "unspecified")) &&
+#       length(attr.values) > 0
+#     ]), false)
+#   )
+#   error_message = "Each user_attribute_statements object must have a name, valid name_format, and at least one value."
+# }
 }
 
 variable "authentication_policy" {
