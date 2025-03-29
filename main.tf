@@ -252,7 +252,7 @@ locals {
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
-  for_each = { for idx, prop in var.base_schema : prop.index => prop }
+  for_each = { for idx, prop in local.base_schema : prop.index => prop }
 
   app_id      = okta_app_saml.saml_app.id
   index       = each.value.index
