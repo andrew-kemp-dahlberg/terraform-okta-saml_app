@@ -21,7 +21,7 @@ crash.log
 *.tfvars
 *.tfvars.json
 
-# Ignore sensitive credentials (just in case)
+# Ignore sensitive credentials (just in case) 
 *.auto.tfvars
 
 # Ignore editor and OS-specific files

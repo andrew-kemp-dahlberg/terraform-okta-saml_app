@@ -229,17 +229,37 @@ locals {
 }
 
 data "http" "schema" {
-    url = local.base_schema_url
-    method = "GET"
-    request_headers = {
-      Accept = "application/json"
-      Authorization = "SSWS ${var.environment.api_token}"
+  count = local.saml_app_id != "none" ? 1 : 0
+  
+  url = local.base_schema_url
+  method = "GET"
+  request_headers = {
+    Accept = "application/json"
+    Authorization = "SSWS ${var.environment.api_token}"
   }
 }
 
 locals {
-  current_schema = try(jsondecode(data.http.schema.response_body), {})
-  http_schema = length(data.http.schema) > 0 ? data.http.schema.response_body : "\"status\" = \"pre-apply\""
+  current_schema = try(jsondecode(data.http.schema[0].response_body), {})
+  http_schema = length(data.http.schema) > 0 ? local.current_schema[0] : {
+        "id" = "#base"
+        "properties" = {
+          "userName" = {
+            "master" = {
+              "type" = "PROFILE_MASTER"
+            }
+            "maxLength" = 100
+            "required" = true
+            "scope" = "NONE"
+            "title" = "Username"
+            "type" = "string"
+          }
+        }
+        "required" = [
+          "userName",
+        ]
+        "type" = "object"
+      }
   # First check if the response is an error
   schema_is_error = try(jsondecode(local.http_schema).errorCode != null, false)
   
