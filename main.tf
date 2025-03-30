@@ -218,20 +218,15 @@ locals {
   potential_match = length(local.app_id_list) == 0 ? "not applied" : "potential match"
 
   saml_app_id = try(local.app_id_list[0],"none")
-  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}"
-  schema_api_call = [{
-    url = local.base_schema_url
-    method = "GET"
-    request_headers = {
-      Accept = "application/json"
-      Authorization = "SSWS ${var.environment.api_token}"
-  }}]
+  
+  base_schema_url =  ["https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}",
+  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"]
 }
 
 data "http" "schema" {
-  count = local.saml_app_id != "none" ? 1 : 0
+  count = local.saml_app_id != "none" ? 2 : 0
   
-  url = local.base_schema_url
+  url = local.base_schema_url[count.index]
   method = "GET"
   request_headers = {
     Accept = "application/json"
@@ -240,37 +235,18 @@ data "http" "schema" {
 }
 
 locals {
-  current_schema = try(jsondecode(data.http.schema[0].response_body), {})
-  # If there's an error or the structure doesn't match expectations, consider it "pre-transformation"
-  schema_transformation_status =  local.current_schema == {
-        "id" = "#base"
-        "properties" = {
-          "userName" = {
-            "master" = {
-              "type" = "PROFILE_MASTER"
-            }
-            "maxLength" = 100
-            "required" = true
-            "scope" = "NONE"
-            "title" = "Username"
-            "type" = "string"
-          }
-        }
-        "required" = [
-          "userName",
-        ]
-        "type" = "object"
-      }  && var.base_schema != [{
-        index       = "userName"
-        master      = "PROFILE_MASTER"
-        pattern     = null
-        permissions = "READ_ONLY"
-        required    = true
-        title       = "Username"
-        type        = "string"
-        user_type   = "default"
-      }] || local.current_schema == {} ?  "pre-transformation" : "transformation complete or no transformation required" 
-  
+  schema_transformation_status = nonsensitive(try(data.http.schema[0],"Application does not exist" 
+    ) != try(data.http.schema[1],"Application does not exist")|| var.base_schema == [{
+      index       = "userName"
+      master      = "PROFILE_MASTER"
+      pattern     = tostring(null)
+      permissions = "READ_ONLY"
+      required    = true
+      title       = "Username"
+      type        = "string"
+      user_type   = "default"
+    }] ? "transformation complete or no transformation required" : "pre-transformation")
+ 
 
   base_schema = local.schema_transformation_status == "pre-transformation" ? [{
     index       = "userName"
