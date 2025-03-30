@@ -1,5 +1,4 @@
 locals {
-
   profile             = [for role in var.roles : role.profile]
   app_group_names     = ["Not a department group"]
   push_group_names    = ["Not a department group"]
@@ -195,30 +194,28 @@ resource "okta_app_saml" "saml_app" {
       }
     }
   }
-locals {
-  find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?q=${local.saml_label}&includeNonDeleted=false"
-  config_applied = try(length(okta_app_saml.saml_app)) > 0 ? 1 : 0 
 
-}
+data "external" "saml_app_id_from_state" {
+  program = ["bash", "-c", <<-EOT
+    STATE_FILE="${path.module}/terraform.tfstate"
 
-data "http" "saml_app" {
-  url = local.find_app_url
-    method = "GET"
-    request_headers = {
-      Accept = "application/json"
-      Authorization = "SSWS ${var.environment.api_token}"
-  }
-}
-
-locals {
-  http_saml_app = try(jsondecode(data.http.saml_app.response_body), [])
-  app_id_list = [
-    for app in local.http_saml_app : app.id
+    if [ -f "$STATE_FILE" ]; then
+      APP_ID=$(jq -r '.resources[] | select(.type == "okta_app_saml" and .name == "saml_app") | .instances[0].attributes.id // "none"' "$STATE_FILE")
+      
+      if [ "$APP_ID" = "null" ] || [ -z "$APP_ID" ]; then
+        echo '{"id": "none"}'
+      else
+        echo "{\"id\": \"$APP_ID\"}"
+      fi
+    else
+      echo '{"id": "none"}'
+    fi
+  EOT
   ]
-  potential_match = length(local.app_id_list) == 0 ? "not applied" : "potential match"
+}
 
-  saml_app_id = try(local.app_id_list[0],"none")
-  
+locals {
+  saml_app_id = data.external.saml_app_id_from_state.result.id
   base_schema_url =  ["https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}",
   "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"]
 }
@@ -286,7 +283,6 @@ resource "okta_app_user_schema_property" "custom_properties" {
   master      = each.value.master
   scope       = each.value.scope
 
-  # Optional properties
   dynamic "array_one_of" {
     for_each = each.value.array_one_of != null ? each.value.array_one_of : []
     content {
