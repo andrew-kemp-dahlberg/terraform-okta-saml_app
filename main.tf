@@ -196,7 +196,7 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 locals {
-  find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?q=${local.saml_label}&filter=status eq \"ACTIVE\"&includeNonDeleted=false"
+  find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?q=${local.saml_label}&includeNonDeleted=false"
   config_applied = try(length(okta_app_saml.saml_app)) > 0 ? 1 : 0 
 
 }
@@ -218,7 +218,7 @@ locals {
   potential_match = length(local.app_id_list) == 0 ? "not applied" : "potential match"
 
   saml_app_id = try(local.app_id_list[0],"none")
-  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
+  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}"
   schema_api_call = [{
     url = local.base_schema_url
     method = "GET"
@@ -241,32 +241,8 @@ data "http" "schema" {
 
 locals {
   current_schema = try(jsondecode(data.http.schema[0].response_body), {})
-  http_schema = length(data.http.schema) > 0 ? local.current_schema[0] : {
-        "id" = "#base"
-        "properties" = {
-          "userName" = {
-            "master" = {
-              "type" = "PROFILE_MASTER"
-            }
-            "maxLength" = 100
-            "required" = true
-            "scope" = "NONE"
-            "title" = "Username"
-            "type" = "string"
-          }
-        }
-        "required" = [
-          "userName",
-        ]
-        "type" = "object"
-      }
-  # First check if the response is an error
-  schema_is_error = try(jsondecode(local.http_schema).errorCode != null, false)
-  
   # If there's an error or the structure doesn't match expectations, consider it "pre-transformation"
-  schema_transformation_status = local.schema_is_error ? "pre-transformation" : (
-    try(
-      jsondecode(local.http_schema).definitions.base == {
+  schema_transformation_status =  local.current_schema == {
         "id" = "#base"
         "properties" = {
           "userName" = {
@@ -284,7 +260,7 @@ locals {
           "userName",
         ]
         "type" = "object"
-      } && var.base_schema != [{
+      }  && var.base_schema != [{
         index       = "userName"
         master      = "PROFILE_MASTER"
         pattern     = null
@@ -293,10 +269,8 @@ locals {
         title       = "Username"
         type        = "string"
         user_type   = "default"
-      }],
-      false
-    ) ? "pre-transformation" : "transformed or no transformation required"
-  )
+      }] || local.current_schema == {} ?  "pre-transformation" : "transformation complete or no transformation required" 
+  
 
   base_schema = local.schema_transformation_status == "pre-transformation" ? [{
     index       = "userName"
