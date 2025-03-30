@@ -109,13 +109,13 @@ variable "saml_app" {
     single_logout_url         = optional(string, null)
 
     // SAML protocol settings
-    assertion_signed            = optional(bool, false)
+    assertion_signed            = optional(bool, true)
     authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport")
     digest_algorithm            = optional(string, "SHA256")
     honor_force_authn           = optional(bool, false)
     idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
     request_compressed          = optional(bool, null)
-    response_signed             = optional(bool, false)
+    response_signed             = optional(bool, true)
     saml_signed_request_enabled = optional(bool, false)
     saml_version                = optional(string, "2.0")
     signature_algorithm         = optional(string, "RSA_SHA256")

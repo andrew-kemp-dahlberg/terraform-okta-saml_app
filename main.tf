@@ -218,7 +218,7 @@ locals {
   potential_match = length(local.app_id_list) == 0 ? "not applied" : "potential match"
 
   saml_app_id = try(local.app_id_list[0],"none")
-  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
+  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}"
   schema_api_call = [{
     url = local.base_schema_url
     method = "GET"
@@ -269,7 +269,7 @@ locals {
         title       = "Username"
         type        = "string"
         user_type   = "default"
-      }]?  "pre-transformation" : "transformed or no transformation required" 
+      }] || local.current_schema == {} ?  "pre-transformation" : "transformation complete or no transformation required" 
   
 
   base_schema = local.schema_transformation_status == "pre-transformation" ? [{
