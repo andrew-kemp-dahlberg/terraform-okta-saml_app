@@ -50,10 +50,7 @@ output "features" {
   value       = okta_app_saml.saml_app.features
 }
 
-output "schema" {
-  description = "Current app default schema"
-  value       = jsondecode(data.http.schema.response_body).definitions.base
-}
+
 output "schema_transformation_status" {
   description = "Current app default schema"
   value       = local.schema_transformation_status

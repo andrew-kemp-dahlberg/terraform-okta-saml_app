@@ -195,7 +195,6 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 locals {
-  status = "\"ACTIVE\""
   find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?includeNonDeleted=false&q=${local.saml_label}"
 
 }
@@ -216,7 +215,6 @@ locals {
 
 
 data "http" "schema" {
-  
   url = local.base_schema_url
   method = "GET"
   request_headers = {
@@ -247,7 +245,7 @@ data "external" "pre-condition" {
 
     # Check schema API response
     precondition {
-      condition = data.http.schema.status_code == 200
+      condition = data.http.schema.status_code == 200 || local.saml_app_id == "none"
       error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
     }
   }
