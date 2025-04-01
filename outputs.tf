@@ -56,5 +56,9 @@ output "schema_transformation_status" {
   value       = local.schema_transformation_status
 }
 
+output "saml_app_list" {
+  description = "Current app default schema"
+  value       = data.http.saml_app_list.response_body
+}
 
 
