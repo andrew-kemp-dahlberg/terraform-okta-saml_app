@@ -359,7 +359,8 @@ resource "okta_app_group_assignments" "main_app" {
     iterator = group_id
     content {
       id       = group_id.value
-      profile  = jsonencode(var.roles[group_id.key].profile)
+      profile  = local.schema_transformation_status == "transformation complete or no transformation required"? jsonencode(
+        var.roles[group_id.key].profile) : jsonencode({})
       priority = tonumber(group_id.key) + 1
     }
   }
