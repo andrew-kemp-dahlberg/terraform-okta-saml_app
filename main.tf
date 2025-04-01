@@ -215,7 +215,6 @@ locals {
 
 
 data "http" "schema" {
-  
   url = local.base_schema_url
   method = "GET"
   request_headers = {
@@ -246,7 +245,7 @@ data "external" "pre-condition" {
 
     # Check schema API response
     precondition {
-      condition = data.http.schema.status_code == 200
+      condition = data.http.schema.status_code == 200 || local.saml_app_id == "none"
       error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
     }
   }
