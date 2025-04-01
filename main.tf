@@ -195,7 +195,6 @@ resource "okta_app_saml" "saml_app" {
     }
   }
 locals {
-  status = "\"ACTIVE\""
   find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?includeNonDeleted=false&q=${local.saml_label}"
 
 }
@@ -206,6 +205,11 @@ data "http" "saml_app_list" {
   request_headers = {
     Accept = "application/json"
     Authorization = "SSWS ${var.environment.api_token}"
+  }
+  lifecycle {
+    postcondition {
+    condition = data.http.saml_app_list.status_code == 200
+    error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
   }
 }
 
@@ -223,8 +227,19 @@ data "http" "schema" {
     Accept = "application/json"
     Authorization = "SSWS ${var.environment.api_token}"
   }
+  lifecycle {
+     precondition {
+      condition = data.http.saml_app_list.status_code == 200
+      error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
+    }
 
+    postcondition {
+      condition = data.http.schema.status_code == 200
+      error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
+    }
+  }
 }
+
 
 data "external" "pre-condition" {
   program = ["bash", "-c", <<-EOT
@@ -234,21 +249,13 @@ data "external" "pre-condition" {
 
   lifecycle {
     # Check SAML app list API response
-    precondition {
-      condition = data.http.saml_app_list.status_code == 200
-      error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
-    }
+ 
 
     # Check SAML app ID
     precondition {
       condition = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
       error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
-    }
-
-    # Check schema API response
-    precondition {
-      condition = data.http.schema.status_code == 200
-      error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
+      }
     }
   }
 }
@@ -295,6 +302,7 @@ locals {
     type        = "string"
     user_type   = "default"
   }] : var.base_schema
+}
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
