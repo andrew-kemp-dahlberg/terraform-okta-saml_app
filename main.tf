@@ -200,44 +200,24 @@ locals {
 
 }
 
-data "http" "saml_app" {
+data "http" "saml_app_list" {
   url = local.find_app_url
-    method = "GET"
-    request_headers = {
-      Accept = "application/json"
-      Authorization = "SSWS ${var.environment.api_token}"
+  method = "GET"
+  request_headers = {
+    Accept = "application/json"
+    Authorization = "SSWS ${var.environment.api_token}"
   }
 }
 
 
-# data "external" "saml_app_id_from_state" {
-#   program = ["bash", "-c", <<-EOT
-#     STATE_FILE="${path.module}/terraform.tfstate"
-
-#     if [ -f "$STATE_FILE" ]; then
-#       APP_ID=$(jq -r '.resources[] | select(.type == "okta_app_saml" and .name == "saml_app") | .instances[0].attributes.id // "none"' "$STATE_FILE")
-      
-#       if [ "$APP_ID" = "null" ] || [ -z "$APP_ID" ]; then
-#         echo '{"id": "none"}'
-#       else
-#         echo "{\"id\": \"$APP_ID\"}"
-#       fi
-#     else
-#       echo '{"id": "none"}'
-#     fi
-#   EOT
-#   ]
-
-# }
-
 
 
 locals {
-  saml_app_id = jsondecode(data.http.saml_app.response_body)[0].id
-  #saml_app_id = data.external.saml_app_id_from_state.result.id
+  saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
   base_schema_url =  ["https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}",
   "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"]
 }
+
 
 data "http" "schema" {
   count = local.saml_app_id != "none" ? 2 : 0
@@ -248,6 +228,53 @@ data "http" "schema" {
     Accept = "application/json"
     Authorization = "SSWS ${var.environment.api_token}"
   }
+
+}
+
+locals {
+ # Check if schema data source exists and has elements
+  has_schema = length(data.http.schema) > 0
+  has_default_schema = length(data.http.schema) > 1
+
+  # Safely access status codes with consistent return types (always returns number or null)
+  schema_status_code = local.has_schema ? data.http.schema[0].status_code : "no schema status code found"
+  default_schema_status_code = local.has_default_schema ? data.http.schema[1].status_code : "no default schema status code found"
+  
+  # Safely access response bodies with consistent return types (always returns string or null)
+  # Note: I changed these from status_code to response_body since that seems to be the intent
+  schema_body = local.has_schema ? data.http.schema[0].response_body : "no schema response body found for"
+  default_schema_body = local.has_default_schema ? data.http.schema[1].response_body : "no default schema response body found"
+}
+
+data "external" "pre-condition" {
+  program = ["bash", "-c", <<-EOT
+    echo '{"running": "precondition"}'
+  EOT
+  ]
+
+  lifecycle {
+    # First postcondition: Check for successful API response
+    precondition {
+      condition = data.http.saml_app_list.status_code == 200
+      error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
+    }
+
+    # Second postcondition: Validate app existence and ID match
+  precondition {
+    condition = local.saml_app_id == "none"|| local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
+  error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
+}
+
+    precondition {
+      condition = local.schema_status_code == 200 || data.http.schema == []
+      error_message = "API request failed with status code: ${local.schema_status_code}. Error: ${local.schema_body}"
+    }
+
+    precondition {
+      condition = try(data.http.schema[1].status_code == 200, false) || data.http.schema == []
+      error_message = "API request failed with status code: ${local.default_schema_status_code}. Error: ${local.default_schema_body}"
+    }
+    }
 }
 
 locals {
@@ -288,6 +315,8 @@ resource "okta_app_user_base_schema_property" "properties" {
   permissions = local.base_schema[count.index].permissions
   required    = local.base_schema[count.index].required
   user_type   = local.base_schema[count.index].user_type
+
+  
 }
 
 
