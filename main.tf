@@ -211,32 +211,19 @@ data "http" "saml_app_list" {
 
 locals {
   saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
-  base_schema_url =  ["https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}",
-  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"]
+  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
 }
 
 
 data "http" "schema" {
-  count = local.saml_app_id != "none" ? 2 : 0
   
-  url = local.base_schema_url[count.index]
+  url = local.base_schema_url
   method = "GET"
   request_headers = {
     Accept = "application/json"
     Authorization = "SSWS ${var.environment.api_token}"
   }
 
-}
-
-locals {
-  has_schema = length(data.http.schema) > 0
-  has_default_schema = length(data.http.schema) > 1
-
-  schema_status_code = local.has_schema ? data.http.schema[0].status_code : "no schema status code found"
-  default_schema_status_code = local.has_default_schema ? data.http.schema[1].status_code : "no default schema status code found"
-
-  schema_body = local.has_schema ? data.http.schema[0].response_body : "no schema response body found for"
-  default_schema_body = local.has_default_schema ? data.http.schema[1].response_body : "no default schema response body found"
 }
 
 data "external" "pre-condition" {
@@ -246,31 +233,47 @@ data "external" "pre-condition" {
   ]
 
   lifecycle {
+    # Check SAML app list API response
     precondition {
       condition = data.http.saml_app_list.status_code == 200
       error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
     }
 
-  precondition {
-    condition = local.saml_app_id == "none"|| local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
-    error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
+    # Check SAML app ID
+    precondition {
+      condition = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
+      error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
+    }
+
+    # Check schema API response
+    precondition {
+      condition = data.http.schema.status_code == 200
+      error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
+    }
   }
-
-    precondition {
-      condition = local.schema_status_code == "200" || data.http.schema == []
-      error_message = "API request failed with status code: ${local.schema_status_code}. Error: ${local.schema_body}"
-    }
-
-    precondition {
-      condition = local.default_schema_status_code == "200" || data.http.schema == []
-      error_message = "API request failed with status code: ${local.default_schema_status_code}. Error: ${local.default_schema_body}"
-    }
-    }
 }
 
 locals {
-  schema_transformation_status = nonsensitive(try(data.http.schema[0],"Application does not exist" 
-    ) != try(data.http.schema[1],"Application does not exist")|| var.base_schema == [{
+  schema_transformation_status = try(jsondecode(data.http.schema.response_body).definitions.base,"Application does not exist" 
+    ) != {
+    "id": "#base",
+    "type": "object",
+    "properties": {
+      "userName": {
+        "title": "Username",
+        "type": "string",
+        "required": true,
+        "scope": "NONE",
+        "maxLength": 100,
+        "master": {
+          "type": "PROFILE_MASTER"
+        }
+      }
+    },
+    "required": [
+      "userName"
+    ]
+  } || var.base_schema == [{
       index       = "userName"
       master      = "PROFILE_MASTER"
       pattern     = tostring(null)
@@ -279,7 +282,7 @@ locals {
       title       = "Username"
       type        = "string"
       user_type   = "default"
-    }] ? "transformation complete or no transformation required" : "pre-transformation")
+    }] ? "transformation complete or no transformation required" : "pre-transformation"
  
 
   base_schema = local.schema_transformation_status == "pre-transformation" ? [{
@@ -306,8 +309,6 @@ resource "okta_app_user_base_schema_property" "properties" {
   permissions = local.base_schema[count.index].permissions
   required    = local.base_schema[count.index].required
   user_type   = local.base_schema[count.index].user_type
-
-  
 }
 
 
