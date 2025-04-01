@@ -50,7 +50,17 @@ output "features" {
   value       = okta_app_saml.saml_app.features
 }
 
-output "schema" {
+output "schema_transformation_status" {
   description = "Current app default schema"
   value       = local.schema_transformation_status
+}
+
+output "default_schema" {
+  description = "Current app default schema"
+  value       = local.default_schema_body
+}
+
+output "schema" {
+  description = "Current app default schema"
+  value       = local.schema_body
 }

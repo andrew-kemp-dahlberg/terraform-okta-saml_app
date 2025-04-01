@@ -209,9 +209,6 @@ data "http" "saml_app_list" {
   }
 }
 
-
-
-
 locals {
   saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
   base_schema_url =  ["https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}",
@@ -232,16 +229,12 @@ data "http" "schema" {
 }
 
 locals {
- # Check if schema data source exists and has elements
   has_schema = length(data.http.schema) > 0
   has_default_schema = length(data.http.schema) > 1
 
-  # Safely access status codes with consistent return types (always returns number or null)
   schema_status_code = local.has_schema ? data.http.schema[0].status_code : "no schema status code found"
   default_schema_status_code = local.has_default_schema ? data.http.schema[1].status_code : "no default schema status code found"
-  
-  # Safely access response bodies with consistent return types (always returns string or null)
-  # Note: I changed these from status_code to response_body since that seems to be the intent
+
   schema_body = local.has_schema ? data.http.schema[0].response_body : "no schema response body found for"
   default_schema_body = local.has_default_schema ? data.http.schema[1].response_body : "no default schema response body found"
 }
@@ -253,25 +246,23 @@ data "external" "pre-condition" {
   ]
 
   lifecycle {
-    # First postcondition: Check for successful API response
     precondition {
       condition = data.http.saml_app_list.status_code == 200
       error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
     }
 
-    # Second postcondition: Validate app existence and ID match
   precondition {
     condition = local.saml_app_id == "none"|| local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
-  error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
-}
+    error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
+  }
 
     precondition {
-      condition = local.schema_status_code == 200 || data.http.schema == []
+      condition = local.schema_status_code == "200" || data.http.schema == []
       error_message = "API request failed with status code: ${local.schema_status_code}. Error: ${local.schema_body}"
     }
 
     precondition {
-      condition = try(data.http.schema[1].status_code == 200, false) || data.http.schema == []
+      condition = local.default_schema_status_code == "200" || data.http.schema == []
       error_message = "API request failed with status code: ${local.default_schema_status_code}. Error: ${local.default_schema_body}"
     }
     }
