@@ -561,7 +561,203 @@ variable "custom_schema" {
   }
 }
 
+variable "profile_mappings" {
+  description = "List of profile mappings to configure"
+  type = list(object({
+    id         = string
+    expression = string
+    push_status = optional(string)
+  }))
+  default = [
+    {
+      id         = "firstName"
+      expression = "appuser.firstName"
+    },
+    {
+      id         = "lastName"
+      expression = "appuser.lastName"
+    },
+    {
+      id         = "email"
+      expression = "appuser.email"
+    },
+    {
+      id         = "login"
+      expression = "appuser.email"
+    }
+  ]
+}
 
+variable "schema_and_mappings" {
+  description = "Combined schema configuration and profile mappings"
+  type = list(object({
+    # Common identifier for all types
+    id           = string
+    
+    # Field to identify schema type
+    base_schema  = bool       # true for base schema, false for custom schema
+    
+    # Schema fields (for both base and custom)
+    title        = string     # Required for schemas
+    schema_type  = string     # "string", "boolean", "number", "integer", "array", "object"
+    master       = optional(string)
+    permissions  = optional(string)
+    required     = optional(bool)
+    user_type    = optional(string)
+    pattern      = optional(string)     # Used by base schema
+    
+    # Custom schema specific fields
+    description        = optional(string)
+    scope              = optional(string)
+    array_enum         = optional(list(string))
+    array_type         = optional(string)
+    enum               = optional(list(string))
+    external_name      = optional(string)
+    external_namespace = optional(string)
+    max_length         = optional(number)
+    min_length         = optional(number)
+    union              = optional(bool)
+    unique             = optional(string)
+    one_of = optional(list(object({
+      const = string
+      title = string
+    })))
+    array_one_of = optional(list(object({
+      const = string
+      title = string
+    })))
+    
+    # Profile mapping associated with this schema attribute
+    profile_mapping = optional(object({
+      expression  = string
+      push_status = optional(string)
+    }))
+  }))
+  
+  default = [
+    # Base schema with profile mapping
+    {
+      id           = "userName"
+      base_schema  = true
+      title        = "Username"
+      schema_type  = "string"
+      master       = "PROFILE_MASTER"
+      permissions  = "READ_ONLY"
+      required     = true
+      user_type    = "default",
+      profile_mapping = {
+        expression = "appuser.userName"
+      }
+    },
+    {
+      id           = "firstName"
+      base_schema  = true
+      title        = "First Name"
+      schema_type  = "string"
+      master       = "PROFILE_MASTER"
+      permissions  = "READ_ONLY"
+      required     = true
+      user_type    = "default",
+      profile_mapping = {
+        expression = "appuser.firstName"
+      }
+    },
+    {
+      id           = "lastName"
+      base_schema  = true
+      title        = "Last Name"
+      schema_type  = "string"
+      master       = "PROFILE_MASTER"
+      permissions  = "READ_ONLY"
+      required     = true
+      user_type    = "default",
+      profile_mapping = {
+        expression = "appuser.lastName"
+      }
+    },
+    {
+      id           = "email"
+      base_schema  = true
+      title        = "Email"
+      schema_type  = "string"
+      master       = "PROFILE_MASTER"
+      permissions  = "READ_ONLY"
+      required     = true
+      user_type    = "default",
+      profile_mapping = {
+        expression = "appuser.email"
+      }
+    },
+    {
+      id           = "login"
+      base_schema  = true
+      title        = "Login"
+      schema_type  = "string"
+      master       = "PROFILE_MASTER"
+      permissions  = "READ_ONLY"
+      required     = true
+      user_type    = "default",
+      profile_mapping = {
+        expression = "appuser.email"
+      }
+    }
+  ]
 
+  # Schema validations (for both base and custom)
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      contains(["string", "boolean", "number", "integer", "array", "object"], item.schema_type)
+    ])
+    error_message = "Schema type must be one of: string, boolean, number, integer, array, or object."
+  }
 
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      item.master == null || contains(["PROFILE_MASTER", "OKTA"], item.master)
+    ])
+    error_message = "Schema master must be one of: PROFILE_MASTER or OKTA."
+  }
 
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      item.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions)
+    ])
+    error_message = "Schema permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
+  }
+
+  # Custom schema validations
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      item.base_schema == true || item.scope == null || contains(["SELF", "NONE"], item.scope)
+    ])
+    error_message = "Custom schema scope must be either SELF or NONE."
+  }
+
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      item.base_schema == true || item.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], item.unique)
+    ])
+    error_message = "Custom schema unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
+  }
+
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      item.base_schema == true || item.union == null || item.scope != "SELF" || item.union == false
+    ])
+    error_message = "Custom schema union cannot be set to true if scope is set to SELF."
+  }
+
+  validation {
+    condition = alltrue([
+      for item in var.schema_and_mappings :
+      item.schema_type != "array" || item.array_type != null
+    ])
+    error_message = "Schema array type must be specified when schema_type is set to array."
+  }
+}
