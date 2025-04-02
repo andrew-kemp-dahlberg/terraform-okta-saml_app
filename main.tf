@@ -359,20 +359,6 @@ resource "okta_app_user_schema_property" "custom_properties" {
   }
 }
 
-resource "okta_app_group_assignments" "main_app" {
-  app_id = okta_app_saml.saml_app.id
-
-  dynamic "group" {
-    for_each = okta_group.assignment_groups[*].id
-    iterator = group_id
-    content {
-      id       = group_id.value
-      profile  = local.schema_transformation_status == "transformation complete or no transformation required"? jsonencode(
-        var.roles[group_id.key].profile) : jsonencode({})
-      priority = tonumber(group_id.key) + 1
-    }
-  }
-}
 
 # Fetch the user profile mapping source
 data "okta_user_profile_mapping_source" "user" {}
@@ -382,7 +368,7 @@ resource "okta_profile_mapping" "to_app_mapping" {
   source_id          = data.okta_user_profile_mapping_source.user.id
   target_id          = okta_app_saml.saml_app.id
   #delete_when_absent = var.delete_when_absent
- #always_apply       = var.always_apply
+  #always_apply       = var.always_apply
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
@@ -400,7 +386,7 @@ resource "okta_profile_mapping" "to_okta_mapping" {
   source_id          = okta_app_saml.saml_app.id
   target_id          = data.okta_user_profile_mapping_source.user.id
   #delete_when_absent = var.delete_when_absent
- #always_apply       = var.always_apply
+  #always_apply       = var.always_apply
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
@@ -409,6 +395,22 @@ resource "okta_profile_mapping" "to_okta_mapping" {
       id         = mappings.value.id
       expression = mappings.value.expression
       push_status = mappings.value.push_status
+    }
+  }
+}
+
+
+resource "okta_app_group_assignments" "main_app" {
+  app_id = okta_app_saml.saml_app.id
+
+  dynamic "group" {
+    for_each = okta_group.assignment_groups[*].id
+    iterator = group_id
+    content {
+      id       = group_id.value
+      profile  = local.schema_transformation_status == "transformation complete or no transformation required"? jsonencode(
+        var.roles[group_id.key].profile) : jsonencode({})
+      priority = tonumber(group_id.key) + 1
     }
   }
 }
