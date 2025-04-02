@@ -211,8 +211,16 @@ data "http" "saml_app_list" {
 locals {
   saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
   base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
+
 }
 
+#
+#
+##### These two data sources are the same purpose. after testing data.http.schema will be replaced
+data "okta_user_profile_mapping_source" "testing" {
+  count = saml_app_id != "none" ? 1 : 0 
+  id = local.saml_app_id
+}
 
 data "http" "schema" {
   url = local.base_schema_url
@@ -221,8 +229,8 @@ data "http" "schema" {
     Accept = "application/json"
     Authorization = "SSWS ${var.environment.api_token}"
   }
-
 }
+
 
 data "external" "pre-condition" {
   program = ["bash", "-c", <<-EOT
@@ -366,3 +374,41 @@ resource "okta_app_group_assignments" "main_app" {
   }
 }
 
+# Fetch the user profile mapping source
+data "okta_user_profile_mapping_source" "user" {}
+
+# Create a flexible profile mapping resource that uses the variable
+resource "okta_profile_mapping" "to_app_mapping" {
+  source_id          = data.okta_user_profile_mapping_source.user.id
+  target_id          = okta_app_saml.saml_app.id
+  #delete_when_absent = var.delete_when_absent
+ #always_apply       = var.always_apply
+
+  # Dynamically create mappings based on the variable
+  dynamic "mappings" {
+    for_each = var.profile_mappings
+    content {
+      id         = mappings.value.id
+      expression = mappings.value.expression
+      push_status = mappings.value.push_status
+    }
+  }
+}
+
+# Create a flexible profile mapping resource that uses the variable
+resource "okta_profile_mapping" "to_okta_mapping" {
+  source_id          = okta_app_saml.saml_app.id
+  target_id          = data.okta_user_profile_mapping_source.user.id
+  #delete_when_absent = var.delete_when_absent
+ #always_apply       = var.always_apply
+
+  # Dynamically create mappings based on the variable
+  dynamic "mappings" {
+    for_each = var.profile_mappings
+    content {
+      id         = mappings.value.id
+      expression = mappings.value.expression
+      push_status = mappings.value.push_status
+    }
+  }
+}

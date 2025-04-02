@@ -53,29 +53,82 @@ variable "admin_note" {
     saas_mgmt_name  = string
     accounting_name = string
     sso_enforced    = bool
+    lifecycle       = object({
+      enabled = optional(bool, false)
+
+      features = optional(object({
+        create = optional(bool, false)
+        update = optional(bool, false)
+        deactivate = optional(bool, false)
+      }), null)
+      
+      other_automation = optional(object({
+        create = object({
+          type = string
+          link = string
+        })
+        update = object({
+          type = string
+          link = string
+        })
+        deactivate = object({
+          type = string
+          link = string
+        })
+      }), null)
+    })
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
-    additional_notes       = string
+    additional_notes       = optional(string)
   })
 
-  validation {
-    condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
-    error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
-  }
+#   validation {
+#     condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
+#     error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
+#   }
 
-  validation {
-    condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
-    error_message = "App owner must be a valid email address."
-  }
+#   validation {
+#     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
+#     error_message = "App owner must be a valid email address."
+#   }
 
-  validation {
-    condition = alltrue([
-      for account in var.admin_note.service_accounts :
-      can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
-    ])
-    error_message = "Service accounts must be valid email addresses."
-  }
+#   validation {
+#     condition = alltrue([
+#       for account in var.admin_note.service_accounts :
+#       can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+#     ])
+#     error_message = "Service accounts must be valid email addresses."
+#   }
+
+#     validation {
+#     condition = var.admin_note.lifecyle.other_automation == null || alltrue([
+#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.admin_note.lifecyle.other_automation.create.type)),
+#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.admin_note.lifecyle.other_automation.update.type)),
+#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.admin_note.lifecyle.deactivate.type))
+#     ])
+#     error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+#   }
+
+#   validation {
+#     condition = var.admin_note.lifecyle.other_automation == null || alltrue([
+#       try((contains(["HRIS", "None"], var.admin_note.lifecyle.other_automation.create.type)))||
+#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecyle.other_automation.create.link))) ||
+#       try(var.admin_note.lifecyle.other_automation.create.link == ""),
+
+#       try((contains(["HRIS", "SCIM", "None"], var.admin_note.lifecyle.other_automation.update.type))) ||
+#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecyle.other_automation.update.link))) ||
+#       try(var.admin_note.lifecyle.other_automation.update.link == ""),
+
+#       try((contains(["HRIS", "SCIM", "None"], var.admin_note.lifecyle.other_automation.deactivate.type))) ||
+#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecyle.other_automation.deactivate.link))) ||
+#       try(var.admin_note.lifecyle.other_automation.deactivate.link == "")
+#     ])
+#     error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
+#   }
 }
 
 variable "saml_app" {
@@ -315,62 +368,62 @@ variable "roles" {
   }
 }
 
-variable "scim" {
-  description = "How the application is provisioned"
-  type = object({
-    enabled = optional(bool, false)
+# variable "scim" {
+#   description = "How the application is provisioned"
+  # type = object({
+  #   enabled = optional(bool, false)
 
-    features = optional(object({
-      create = optional(bool, false)
-      update = optional(bool, false)
-      deactivate = optional(bool, false)
-    }), null)
+  #   features = optional(object({
+  #     create = optional(bool, false)
+  #     update = optional(bool, false)
+  #     deactivate = optional(bool, false)
+  #   }), null)
     
-    other_automation = optional(object({
-      create = object({
-        type = string
-        link = string
-      })
-      update = object({
-        type = string
-        link = string
-      })
-      deactivate = object({
-        type = string
-        link = string
-      })
-    }), null)
-  })
+  #   other_automation = optional(object({
+  #     create = object({
+  #       type = string
+  #       link = string
+  #     })
+  #     update = object({
+  #       type = string
+  #       link = string
+  #     })
+  #     deactivate = object({
+  #       type = string
+  #       link = string
+  #     })
+  #   }), null)
+  # })
 
-#   validation {
-#     condition = var.scim.other_automation == null || alltrue([
-#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-#       var.scim.other_automation.create.type)),
-#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-#       var.scim.other_automation.update.type)),
-#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-#       var.scim.deprovisioning.type))
-#     ])
-#     error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
-#   }
+  # validation {
+  #   condition = var.scim.other_automation == null || alltrue([
+  #     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+  #     var.scim.other_automation.create.type)),
+  #     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+  #     var.scim.other_automation.update.type)),
+  #     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+  #     var.scim.deprovisioning.type))
+  #   ])
+  #   error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+  # }
 
-#   validation {
-#     condition = var.scim.other_automation == null || alltrue([
-#       try((contains(["HRIS", "None"], var.scim.other_automation.create.type)))||
-#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.create.link))) ||
-#       try(var.scim.other_automation.create.link == ""),
+  # validation {
+  #   condition = var.scim.other_automation == null || alltrue([
+  #     try((contains(["HRIS", "None"], var.scim.other_automation.create.type)))||
+  #     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.create.link))) ||
+  #     try(var.scim.other_automation.create.link == ""),
 
-#       try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.update.type))) ||
-#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.update.link))) ||
-#       try(var.scim.other_automation.update.link == ""),
+  #     try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.update.type))) ||
+  #     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.update.link))) ||
+  #     try(var.scim.other_automation.update.link == ""),
 
-#       try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.deprovisioning.type))) ||
-#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.deprovisioning.link))) ||
-#       try(var.scim.other_automation.deprovisioning.link == "")
-#     ])
-#     error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
-#   }
-}
+  #     try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.deprovisioning.type))) ||
+  #     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.deprovisioning.link))) ||
+  #     try(var.scim.other_automation.deprovisioning.link == "")
+  #   ])
+  #   error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
+  # }
+# }
 
 variable "base_schema" {
   description = "List of application user base schema properties to configure"

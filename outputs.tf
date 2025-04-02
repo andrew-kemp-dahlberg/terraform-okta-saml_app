@@ -62,3 +62,6 @@ output "saml_app_list" {
 }
 
 
+# output "profile_mapping_source" {
+#   value = data.okta_user_profile_mapping_source.example
+# }
