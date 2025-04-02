@@ -427,7 +427,7 @@ resource "okta_profile_mapping" "to_app_mapping" {
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = var.profile_mappings
+    for_each = local.profile_mappings
     content {
       id         = mappings.value.id
       expression = mappings.value.expression
