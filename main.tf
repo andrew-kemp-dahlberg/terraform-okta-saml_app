@@ -306,7 +306,7 @@ locals {
   ]
   
   # Profile mapping items (extract from all schema items that have a profile_mapping)
-  profile_mapping = [
+  profile_mappings = [
     for item in var.schema : {
       id          = item.id
       expression  = item.profile_mapping.expression
@@ -445,7 +445,7 @@ resource "okta_profile_mapping" "to_okta_mapping" {
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = var.profile_mappings
+    for_each = local.profile_mappings
     content {
       id         = mappings.value.id
       expression = mappings.value.expression
