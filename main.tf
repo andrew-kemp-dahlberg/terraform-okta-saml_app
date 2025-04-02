@@ -215,7 +215,6 @@ locals {
 }
 
 #
-#
 ##### These two data sources are the same purpose. after testing data.http.schema will be replaced
 data "okta_user_profile_mapping_source" "testing" {
   count = saml_app_id != "none" ? 1 : 0 
@@ -259,7 +258,63 @@ data "external" "pre-condition" {
   }
 }
 
+
+
+
+
 locals {
+  # Base schema items
+  base_schema_raw = [
+    for item in var.schema : {
+      index       = item.id
+      title       = item.title
+      type        = item.schema_type
+      master      = item.master != null ? item.master : "PROFILE_MASTER"
+      pattern     = item.pattern
+      permissions = item.permissions != null ? item.permissions : "READ_ONLY"
+      required    = item.required != null ? item.required : true
+      user_type   = item.user_type != null ? item.user_type : "default"
+    }
+    if item.base_schema == true
+  ]
+  
+  # Custom schema items
+  custom_schema = [
+    for item in var.schema : {
+      index              = item.id
+      title              = item.title
+      type               = item.schema_type
+      description        = item.description
+      master             = item.master != null ? item.master : "OKTA"
+      scope              = item.scope != null ? item.scope : "NONE"
+      array_enum         = item.array_enum
+      array_type         = item.array_type
+      enum               = item.enum
+      external_name      = item.external_name
+      external_namespace = item.external_namespace
+      max_length         = item.max_length
+      min_length         = item.min_length
+      permissions        = item.permissions != null ? item.permissions : "READ_ONLY"
+      required           = item.required != null ? item.required : false
+      union              = item.union != null ? item.union : false
+      unique             = item.unique != null ? item.unique : "NOT_UNIQUE"
+      user_type          = item.user_type != null ? item.user_type : "default"
+      one_of             = item.one_of
+      array_one_of       = item.array_one_of
+    }
+    if item.base_schema == false
+  ]
+  
+  # Profile mapping items (extract from all schema items that have a profile_mapping)
+  profile_mapping = [
+    for item in var.schema : {
+      id          = item.id
+      expression  = item.profile_mapping.expression
+      push_status = item.profile_mapping.push_status
+    }
+    if item.profile_mapping != null
+  ]
+
   schema_transformation_status = try(jsondecode(data.http.schema.response_body).definitions.base,"Application does not exist" 
     ) != {
     "id": "#base",
@@ -279,7 +334,7 @@ locals {
     "required": [
       "userName"
     ]
-  } || var.base_schema == [{
+  } || var.schema == [{
       index       = "userName"
       master      = "PROFILE_MASTER"
       pattern     = tostring(null)
@@ -300,7 +355,7 @@ locals {
     title       = "Username"
     type        = "string"
     user_type   = "default"
-  }] : var.base_schema
+  }] : local.base_schema_raw
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
@@ -318,8 +373,8 @@ resource "okta_app_user_base_schema_property" "properties" {
 }
 
 
-resource "okta_app_user_schema_property" "custom_properties" {
-  for_each = { for idx, prop in var.custom_schema : prop.index => prop }
+resource "okta_app_user_schema_property" "custom_schema" {
+  for_each = { for idx, prop in local.custom_schema : prop.index => prop }
 
   app_id      = okta_app_saml.saml_app.id
   index       = each.value.index

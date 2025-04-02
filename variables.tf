@@ -634,74 +634,16 @@ variable "schema_and_mappings" {
     }))
   }))
   
-  default = [
-    # Base schema with profile mapping
-    {
-      id           = "userName"
-      base_schema  = true
-      title        = "Username"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.userName"
-      }
-    },
-    {
-      id           = "firstName"
-      base_schema  = true
-      title        = "First Name"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.firstName"
-      }
-    },
-    {
-      id           = "lastName"
-      base_schema  = true
-      title        = "Last Name"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.lastName"
-      }
-    },
-    {
-      id           = "email"
-      base_schema  = true
-      title        = "Email"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.email"
-      }
-    },
-    {
-      id           = "login"
-      base_schema  = true
-      title        = "Login"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.email"
-      }
-    }
-  ]
+  default = [{
+      index       = "userName"
+      master      = "PROFILE_MASTER"
+      pattern     = tostring(null)
+      permissions = "READ_ONLY"
+      required    = true
+      title       = "Username"
+      type        = "string"
+      user_type   = "default"
+    }]
 
   # Schema validations (for both base and custom)
   validation {
