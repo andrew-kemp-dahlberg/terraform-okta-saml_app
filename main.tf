@@ -457,8 +457,8 @@ locals {
 resource "okta_profile_mapping" "to_okta_mapping" {
   source_id          = okta_app_saml.saml_app.id
   target_id          = data.okta_user_profile_mapping_source.user.id
-  #delete_when_absent = var.delete_when_absent
-  #always_apply       = var.always_apply
+  delete_when_absent = var.environment.profile_mapping_settings.delete_when_absent
+  always_apply       = var.environment.profile_mapping_settings.always_apply
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
