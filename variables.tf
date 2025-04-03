@@ -388,13 +388,12 @@ variable "schema" {
     type  = string     # "string", "boolean", "number", "integer", "array", "object"
     master       = optional(string)
     permissions  = optional(string)
-    required     = optional(bool)
+    required     = optional(bool, false)
     user_type    = optional(string)
     pattern      = optional(string)     # Used by base schema
     
     # Custom schema specific fields
     description        = optional(string)
-    scope              = optional(string)
     array_enum         = optional(list(string))
     array_type         = optional(string)
     enum               = optional(list(string))
@@ -402,8 +401,8 @@ variable "schema" {
     external_namespace = optional(string)
     max_length         = optional(number)
     min_length         = optional(number)
-    union              = optional(bool)
-    unique             = optional(string)
+    union              = optional(bool, true)
+    unique             = optional(string, "NOT_UNIQUE")
     one_of = optional(list(object({
       const = string
       title = string
@@ -440,7 +439,7 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      contains(["string", "boolean", "number", "integer", "array", "object"], item.schema_type)
+      contains(["string", "boolean", "number", "integer", "array", "object"], item.type)
     ])
     error_message = "Schema type must be one of: string, boolean, number, integer, array, or object."
   }
@@ -459,15 +458,6 @@ variable "schema" {
       item.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions)
     ])
     error_message = "Schema permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
-  }
-
-  # Custom schema validations
-  validation {
-    condition = alltrue([
-      for item in var.schema :
-      item.base_schema == true || item.scope == null || contains(["SELF", "NONE"], item.scope)
-    ])
-    error_message = "Custom schema scope must be either SELF or NONE."
   }
 
   validation {
@@ -489,8 +479,8 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      item.schema_type != "array" || item.array_type != null
+      item.type != "array" || item.array_type != null
     ])
-    error_message = "Schema array type must be specified when schema_type is set to array."
+    error_message = "Schema array type must be specified when type is set to array."
   }
 }

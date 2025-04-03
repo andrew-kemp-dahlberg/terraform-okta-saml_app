@@ -338,7 +338,7 @@ locals {
       type               = item.type
       description        = item.description
       master             = item.master != null ? item.master : "PROFILE_MASTER"
-      scope              = item.scope != null ? item.scope : "NONE"
+      scope              = item.to_app_mappings == null || item.to_okta_mappings == null ? "NONE" : "SELF"
       array_enum         = item.array_enum
       array_type         = item.array_type
       enum               = item.enum
@@ -346,11 +346,11 @@ locals {
       external_namespace = item.external_namespace
       max_length         = item.max_length
       min_length         = item.min_length
-      permissions        = item.permissions != null ? item.permissions : "READ_ONLY"
-      required           = item.required != null ? item.required : false
-      union              = item.union != null ? item.union : false
-      unique             = item.unique != null ? item.unique : "NOT_UNIQUE"
-      user_type          = item.user_type != null ? item.user_type : "default"
+      permissions        = item.permissions != null || var.saml_app.preconfigured_app != null ? item.permissions : "READ_ONLY"
+      required           = item.required
+      union              = item.union
+      unique             = item.unique != null || var.saml_app.preconfigured_app != null ? item.unique : "NOT_UNIQUE"
+      user_type          = item.user_type != null || var.saml_app.preconfigured_app != null ? item.user_type : "default"
       one_of             = item.one_of
       array_one_of       = item.array_one_of
     }
