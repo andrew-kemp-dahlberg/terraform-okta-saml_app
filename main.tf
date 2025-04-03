@@ -264,8 +264,6 @@ data "external" "pre-condition" {
 
 locals {
 
-  
-
   schema_transformation_status = try(jsondecode(data.http.schema.response_body).definitions.base,"Application does not exist" 
     ) != {
     "id": "#base",
