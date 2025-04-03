@@ -40,6 +40,11 @@ variable "environment" {
       iOS     = optional(string)
       Android = optional(string)
     })
+  
+    profile_mapping_settings = object({
+      delete_when_absent = optional(bool, false)
+      always_apply = optional(bool, false)
+    })
   })
   sensitive = true
 }
