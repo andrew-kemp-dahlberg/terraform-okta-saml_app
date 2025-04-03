@@ -425,6 +425,7 @@ variable "schema" {
   }))
   
   default = [{
+      schema_type = "base_schema"
       index       = "userName"
       master      = "PROFILE_MASTER"
       pattern     = null
