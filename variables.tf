@@ -409,7 +409,11 @@ variable "schema" {
     })))
     
     # Profile mapping associated with this schema attribute
-    profile_mapping = optional(object({
+    to_app_mapping = optional(object({
+      expression  = string
+      push_status = optional(string)
+    }))
+    to_okta_mapping = optional(object({
       expression  = string
       push_status = optional(string)
     }))

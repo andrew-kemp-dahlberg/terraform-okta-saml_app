@@ -263,57 +263,8 @@ data "external" "pre-condition" {
 
 
 locals {
-  # Base schema items
-  base_schema_raw = [
-    for item in var.schema : {
-      index       = item.id
-      title       = item.title
-      type        = item.schema_type
-      master      = item.master != null ? item.master : "PROFILE_MASTER"
-      pattern     = item.pattern
-      permissions = item.permissions != null ? item.permissions : "READ_ONLY"
-      required    = item.required != null ? item.required : true
-      user_type   = item.user_type != null ? item.user_type : "default"
-    }
-    if item.base_schema == true
-  ]
+
   
-  # Custom schema items
-  custom_schema = [
-    for item in var.schema : {
-      index              = item.id
-      title              = item.title
-      type               = item.schema_type
-      description        = item.description
-      master             = item.master != null ? item.master : "OKTA"
-      scope              = item.scope != null ? item.scope : "NONE"
-      array_enum         = item.array_enum
-      array_type         = item.array_type
-      enum               = item.enum
-      external_name      = item.external_name
-      external_namespace = item.external_namespace
-      max_length         = item.max_length
-      min_length         = item.min_length
-      permissions        = item.permissions != null ? item.permissions : "READ_ONLY"
-      required           = item.required != null ? item.required : false
-      union              = item.union != null ? item.union : false
-      unique             = item.unique != null ? item.unique : "NOT_UNIQUE"
-      user_type          = item.user_type != null ? item.user_type : "default"
-      one_of             = item.one_of
-      array_one_of       = item.array_one_of
-    }
-    if item.base_schema == false
-  ]
-  
-  # Profile mapping items (extract from all schema items that have a profile_mapping)
-  profile_mappings = [
-    for item in var.schema : {
-      id          = item.id
-      expression  = item.profile_mapping.expression
-      push_status = item.profile_mapping.push_status
-    }
-    if item.profile_mapping != null
-  ]
 
   schema_transformation_status = try(jsondecode(data.http.schema.response_body).definitions.base,"Application does not exist" 
     ) != {
@@ -344,7 +295,22 @@ locals {
       type        = "string"
       user_type   = "default"
     }] ? "transformation complete or no transformation required" : "pre-transformation"
- 
+
+      # Base schema items
+  base_schema_raw = [
+    for item in var.schema : {
+      index       = item.id
+      title       = item.title
+      type        = item.schema_type
+      master      = item.master != null ? item.master : "PROFILE_MASTER"
+      pattern     = item.pattern
+      permissions = item.permissions != null ? item.permissions : "READ_ONLY"
+      required    = item.required != null ? item.required : true
+      user_type   = item.user_type != null ? item.user_type : "default"
+    }
+    if item.base_schema == true
+  ]
+  
 
   base_schema = local.schema_transformation_status == "pre-transformation" ? [{
     index       = "userName"
@@ -370,6 +336,36 @@ resource "okta_app_user_base_schema_property" "properties" {
   permissions = local.base_schema[count.index].permissions
   required    = local.base_schema[count.index].required
   user_type   = local.base_schema[count.index].user_type
+}
+
+locals {
+    # Custom schema items
+  custom_schema = [
+    for item in var.schema : {
+      index              = item.id
+      title              = item.title
+      type               = item.schema_type
+      description        = item.description
+      master             = item.master != null ? item.master : "PROFILE_MASTER"
+      scope              = item.scope != null ? item.scope : "NONE"
+      array_enum         = item.array_enum
+      array_type         = item.array_type
+      enum               = item.enum
+      external_name      = item.external_name
+      external_namespace = item.external_namespace
+      max_length         = item.max_length
+      min_length         = item.min_length
+      permissions        = item.permissions != null ? item.permissions : "READ_ONLY"
+      required           = item.required != null ? item.required : false
+      union              = item.union != null ? item.union : false
+      unique             = item.unique != null ? item.unique : "NOT_UNIQUE"
+      user_type          = item.user_type != null ? item.user_type : "default"
+      one_of             = item.one_of
+      array_one_of       = item.array_one_of
+    }
+    if item.base_schema == false
+  ]
+ 
 }
 
 
@@ -414,6 +410,16 @@ resource "okta_app_user_schema_property" "custom_schema" {
   }
 }
 
+locals {
+  to_app_mappings = [
+    for item in var.schema : {
+      id          = item.id
+      expression  = item.to_app_mapping.expression
+      push_status = item.to_app_mapping.push_status
+    }
+    if item.to_app_mapping != null
+  ]
+}
 
 # Fetch the user profile mapping source
 data "okta_user_profile_mapping_source" "user" {}
@@ -427,13 +433,24 @@ resource "okta_profile_mapping" "to_app_mapping" {
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = local.profile_mappings
+    for_each = local.to_app_mappings
     content {
       id         = mappings.value.id
       expression = mappings.value.expression
       push_status = mappings.value.push_status
     }
   }
+}
+
+locals {
+  to_okta_mappings = [
+    for item in var.schema : {
+      id          = item.id
+      expression  = item.to_okta_mapping.expression
+      push_status = item.to_okta_mapping.push_status
+    }
+    if item.to_okta_mapping != null
+  ]
 }
 
 # Create a flexible profile mapping resource that uses the variable
@@ -445,7 +462,7 @@ resource "okta_profile_mapping" "to_okta_mapping" {
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = local.profile_mappings
+    for_each = local.to_okta_mappings
     content {
       id         = mappings.value.id
       expression = mappings.value.expression
