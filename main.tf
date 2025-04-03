@@ -211,15 +211,8 @@ data "http" "saml_app_list" {
 locals {
   saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
   base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
-
 }
 
-#
-##### These two data sources are the same purpose. after testing data.http.schema will be replaced
-data "okta_user_profile_mapping_source" "testing" {
-  count = saml_app_id != "none" ? 1 : 0 
-  id = local.saml_app_id
-}
 
 data "http" "schema" {
   url = local.base_schema_url
@@ -299,7 +292,7 @@ locals {
     for item in var.schema : {
       index       = item.id
       title       = item.title
-      type        = item.schema_type
+      type        = item.type
       master      = item.master != null ? item.master : "PROFILE_MASTER"
       pattern     = item.pattern
       permissions = item.permissions != null ? item.permissions : "READ_ONLY"
@@ -342,7 +335,7 @@ locals {
     for item in var.schema : {
       index              = item.id
       title              = item.title
-      type               = item.schema_type
+      type               = item.type
       description        = item.description
       master             = item.master != null ? item.master : "PROFILE_MASTER"
       scope              = item.scope != null ? item.scope : "NONE"
@@ -417,6 +410,7 @@ locals {
     }
     if item.to_app_mapping != null
   ]
+
 }
 
 # Fetch the user profile mapping source

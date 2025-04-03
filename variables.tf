@@ -41,10 +41,10 @@ variable "environment" {
       Android = optional(string)
     })
   
-    profile_mapping_settings = object({
+    profile_mapping_settings = optional(object({
       delete_when_absent = optional(bool, false)
       always_apply = optional(bool, false)
-    })
+    }),null)
   })
   sensitive = true
 }
