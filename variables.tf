@@ -401,7 +401,7 @@ variable "schema" {
     external_namespace = optional(string)
     max_length         = optional(number)
     min_length         = optional(number)
-    union              = optional(bool, true)
+    union              = optional(bool)
     unique             = optional(string, "NOT_UNIQUE")
     one_of = optional(list(object({
       const = string
@@ -471,9 +471,9 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      item.base_schema == true || item.union == null || item.scope != "SELF" || item.union == false
+      item.base_schema == true || item.union == false || item.to_app_mapping != null
     ])
-    error_message = "Custom schema union cannot be set to true if scope is set to SELF."
+    error_message = "Custom schema union cannot be set to true if there is no to app mapping"
   }
 
   validation {
