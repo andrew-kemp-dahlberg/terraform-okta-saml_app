@@ -385,7 +385,7 @@ variable "schema" {
     
     # Schema fields (for both base and custom)
     title        = string     # Required for schemas
-    schema_type  = string     # "string", "boolean", "number", "integer", "array", "object"
+    type  = string     # "string", "boolean", "number", "integer", "array", "object"
     master       = optional(string)
     permissions  = optional(string)
     required     = optional(bool)
