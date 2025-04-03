@@ -427,7 +427,6 @@ variable "schema" {
   default = [{
       id          = "userName"
       base_schema = true
-      index       = "userName"
       master      = "PROFILE_MASTER"
       pattern     = null
       permissions = "READ_ONLY"

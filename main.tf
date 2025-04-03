@@ -277,7 +277,7 @@ locals {
       "userName"
     ]
   } || var.schema == [{
-      index       = "userName"
+      id       = "userName"
       master      = "PROFILE_MASTER"
       pattern     = tostring(null)
       permissions = "READ_ONLY"
