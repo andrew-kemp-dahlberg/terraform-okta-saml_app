@@ -303,8 +303,8 @@ locals {
   ]
   
 
-  base_schema = local.schema_transformation_status == "pre-transformation" ? [{
-    index       = "userName"
+  schema = local.schema_transformation_status == "pre-transformation" ? [{
+    id       = "userName"
     master      = "PROFILE_MASTER"
     pattern     = null
     permissions = "READ_ONLY"
@@ -312,64 +312,41 @@ locals {
     title       = "Username"
     type        = "string"
     user_type   = "default"
-  }] : local.base_schema_raw
+  }] : var.schema
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
-  count = length(local.base_schema)
+  for_each = {
+    for idx, schema in local.schema :
+    schema.id => schema
+    if schema.custom_schema == false
+  }
 
   app_id      = okta_app_saml.saml_app.id
-  index       = local.base_schema[count.index].index
-  title       = local.base_schema[count.index].title
-  type        = local.base_schema[count.index].type
-  master      = local.base_schema[count.index].master
-  pattern     = local.base_schema[count.index].pattern
-  permissions = local.base_schema[count.index].permissions
-  required    = local.base_schema[count.index].required
-  user_type   = local.base_schema[count.index].user_type
+  index       = each.value.id
+  title       = each.value.title
+  type        = each.value.type
+  master      = each.value.master
+  pattern     = each.value.pattern
+  permissions = each.value.permissions
+  required    = each.value.required
+  user_type   = each.value.user_type
 }
-
-locals {
-    # Custom schema items
-  custom_schema = [
-    for item in var.schema : {
-      index              = item.id
-      title              = item.title
-      type               = item.type
-      description        = item.description
-      master             = item.master != null ? item.master : "PROFILE_MASTER"
-      scope              = item.to_app_mappings == null || item.to_okta_mappings == null ? "NONE" : "SELF"
-      array_enum         = item.array_enum
-      array_type         = item.array_type
-      enum               = item.enum
-      external_name      = item.external_name
-      external_namespace = item.external_namespace
-      max_length         = item.max_length
-      min_length         = item.min_length
-      permissions        = item.permissions != null || var.saml_app.preconfigured_app != null ? item.permissions : "READ_ONLY"
-      required           = item.required
-      union              = item.union
-      unique             = item.unique != null || var.saml_app.preconfigured_app != null ? item.unique : "NOT_UNIQUE"
-      user_type          = item.user_type != null || var.saml_app.preconfigured_app != null ? item.user_type : "default"
-      one_of             = item.one_of
-      array_one_of       = item.array_one_of
-    }
-    if item.base_schema == false
-  ]
- 
-}
-
 
 resource "okta_app_user_schema_property" "custom_schema" {
-  for_each = { for idx, prop in local.custom_schema : prop.index => prop }
+  for_each = {
+    for idx, item in var.schema :
+    item.id => item
+    if item.base_schema == false
+  }
 
   app_id      = okta_app_saml.saml_app.id
-  index       = each.value.index
+  index       = each.value.id
   title       = each.value.title
   type        = each.value.type
   description = each.value.description
-  master      = each.value.master
-  scope       = each.value.scope
+  master      = each.value.master != null ? each.value.master : "PROFILE_MASTER"
+  scope       = each.value.to_app_mappings == null || each.value.to_okta_mappings == null ? "NONE" : "SELF"
 
   dynamic "array_one_of" {
     for_each = each.value.array_one_of != null ? each.value.array_one_of : []
@@ -386,11 +363,11 @@ resource "okta_app_user_schema_property" "custom_schema" {
   external_namespace = each.value.external_namespace
   max_length         = each.value.max_length
   min_length         = each.value.min_length
-  permissions        = each.value.permissions
+  permissions        = each.value.permissions != null || var.saml_app.preconfigured_app != null ? each.value.permissions : "READ_ONLY"
   required           = each.value.required
   union              = each.value.union
-  unique             = each.value.unique
-  user_type          = each.value.user_type
+  unique             = each.value.unique != null || var.saml_app.preconfigured_app != null ? each.value.unique : "NOT_UNIQUE"
+  user_type          = each.value.user_type != null || var.saml_app.preconfigured_app != null ? each.value.user_type : "default"
 
   dynamic "one_of" {
     for_each = each.value.one_of != null ? each.value.one_of : []
@@ -403,7 +380,7 @@ resource "okta_app_user_schema_property" "custom_schema" {
 
 locals {
   to_app_mappings = [
-    for item in var.schema : {
+    for item in local.schema : {
       id          = item.id
       expression  = item.to_app_mapping.expression
       push_status = item.to_app_mapping.push_status
@@ -416,7 +393,6 @@ locals {
 # Fetch the user profile mapping source
 data "okta_user_profile_mapping_source" "user" {}
 
-# Create a flexible profile mapping resource that uses the variable
 resource "okta_profile_mapping" "to_app_mapping" {
   source_id          = data.okta_user_profile_mapping_source.user.id
   target_id          = okta_app_saml.saml_app.id
@@ -425,10 +401,18 @@ resource "okta_profile_mapping" "to_app_mapping" {
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = local.to_app_mappings
+    for_each = [
+      for item in local.schema : {
+        id          = item.id
+        expression  = item.to_app_mapping.expression
+        push_status = item.to_app_mapping.push_status
+      }
+      if item.to_app_mapping != null
+    ]
+    
     content {
-      id         = mappings.value.id
-      expression = mappings.value.expression
+      id          = mappings.value.id
+      expression  = mappings.value.expression
       push_status = mappings.value.push_status
     }
   }
@@ -454,15 +438,22 @@ resource "okta_profile_mapping" "to_okta_mapping" {
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = local.to_okta_mappings
+    for_each = [
+      for item in local.schema : {
+        id          = item.id
+        expression  = item.to_okta_mapping.expression
+        push_status = item.to_okta_mapping.push_status
+      }
+      if item.to_okta_mapping != null
+    ]
+    
     content {
-      id         = mappings.value.id
-      expression = mappings.value.expression
+      id          = mappings.value.id
+      expression  = mappings.value.expression
       push_status = mappings.value.push_status
     }
   }
 }
-
 
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id

@@ -381,7 +381,7 @@ variable "schema" {
     id           = string
     
     # Field to identify schema type
-    base_schema  = bool       # true for base schema, false for custom schema
+    custom_schema  = optional(bool, false)       # false for base schema, true for custom schema
     
     # Schema fields (for both base and custom)
     title        = string     # Required for schemas
@@ -425,7 +425,6 @@ variable "schema" {
   
   default = [{
       id          = "userName"
-      base_schema = true
       master      = "PROFILE_MASTER"
       pattern     = null
       permissions = "READ_ONLY"
@@ -463,7 +462,7 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      item.base_schema == true || item.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], item.unique)
+      item.custom_schema == false || item.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], item.unique)
     ])
     error_message = "Custom schema unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
   }
@@ -471,7 +470,7 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      item.base_schema == true || item.union == false || item.to_app_mapping != null
+      item.custom_schema == false || item.union == false || item.to_app_mapping != null
     ])
     error_message = "Custom schema union cannot be set to true if there is no to app mapping"
   }
