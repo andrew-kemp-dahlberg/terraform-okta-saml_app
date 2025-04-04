@@ -22,13 +22,11 @@
 #   sensitive = true
 # }
 
-# variables.tf
 variable "environment" {
-  description = "Information to authenticate with Okta Provider"
   type = object({
     org_name       = string
     base_url       = string
-    api_token   = string
+    api_token      = string
     authentication_policy_ids = object({
       high   = optional(string)
       medium = optional(string)
@@ -40,14 +38,18 @@ variable "environment" {
       iOS     = optional(string)
       Android = optional(string)
     })
-  
+    
     profile_mapping_settings = optional(object({
       delete_when_absent = optional(bool, false)
       always_apply = optional(bool, false)
-    }),null)
+    }), {
+      delete_when_absent = false
+      always_apply = false
+    })
   })
   sensitive = true
 }
+
 variable "name" {
   description = "Application label"
   type        = string
