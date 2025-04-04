@@ -261,7 +261,7 @@ locals {
       required    = item.required != null ? item.required : true
       user_type   = item.user_type != null ? item.user_type : "default"
     }
-    if item.base_schema == true
+    if item.custom_schema == false
   ]
   
 
@@ -320,7 +320,7 @@ resource "okta_app_user_schema_property" "custom_schema" {
   for_each = {
     for idx, item in var.schema :
     item.id => item
-    if item.base_schema == false
+    if item.custom_schema == true
   }
 
   app_id      = okta_app_saml.saml_app.id
