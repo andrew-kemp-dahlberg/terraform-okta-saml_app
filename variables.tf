@@ -386,22 +386,22 @@ variable "schema" {
     # Schema fields (for both base and custom)
     title        = string     # Required for schemas
     type  = string     # "string", "boolean", "number", "integer", "array", "object"
-    master       = optional(string)
-    permissions  = optional(string)
+    master       = optional(string, "PROFILE_MASTER")
+    permissions  = optional(string, "READ_ONLY")
     required     = optional(bool, false)
-    user_type    = optional(string)
-    pattern      = optional(string)     # Used by base schema
+    user_type    = optional(string, null)
+    pattern      = optional(string, null)     # Used by base schema
     
     # Custom schema specific fields
-    description        = optional(string)
-    array_enum         = optional(list(string))
-    array_type         = optional(string)
-    enum               = optional(list(string))
-    external_name      = optional(string)
-    external_namespace = optional(string)
-    max_length         = optional(number)
-    min_length         = optional(number)
-    union              = optional(bool)
+    description        = optional(string, null)
+    array_enum         = optional(list(string),null)
+    array_type         = optional(string,null)
+    enum               = optional(list(string),null)
+    external_name      = optional(string, null)
+    external_namespace = optional(string,null)
+    max_length         = optional(number,null)
+    min_length         = optional(number,null)
+    union              = optional(bool,null)
     unique             = optional(string, "NOT_UNIQUE")
     one_of = optional(list(object({
       const = string
@@ -446,7 +446,7 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      item.master == null || contains(["PROFILE_MASTER", "OKTA"], item.master)
+      item.master == null || try(contains(["PROFILE_MASTER", "OKTA"], item.master))
     ])
     error_message = "Schema master must be one of: PROFILE_MASTER or OKTA."
   }
@@ -454,7 +454,7 @@ variable "schema" {
   validation {
     condition = alltrue([
       for item in var.schema :
-      item.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions)
+      item.permissions == null || try(contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions))
     ])
     error_message = "Schema permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
   }

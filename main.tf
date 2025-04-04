@@ -1,42 +1,4 @@
 locals {
-  profile             = [for role in var.roles : role.profile]
-  app_group_names     = ["Not a department group"]
-  push_group_names    = ["Not a department group"]
-  mailing_group_names = ["Not a department group"]
-  group_profile = [for p in local.profile : length(p) == 0 ?
-    "No profile assigned" :
-    replace(
-      jsonencode(p),
-      "/^{|}$/",
-      ""
-    )
-  ]
-
-  group_notes = [for p in local.profile : format(
-    "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
-    var.name,
-    jsonencode(p)
-  )]
-
-  custom_attributes = [for index in range(length(var.roles)) : merge(
-    { notes = local.group_notes[index] },
-    { assignmentProfile = local.group_profile[index] },
-    local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
-    local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
-    local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
-  )]
-
-}
-
-resource "okta_group" "assignment_groups" {
-  count                     = length(var.roles)
-  name                      = "APP-ROLE-${upper(var.name)}-${upper(var.roles[count.index].name)}"
-  description               = "Group assigns users to ${var.name} with the role of ${var.roles[count.index].name}"
-  custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
-}
-
-
-locals {
   // Condensed Admin Note         
   admin_note = {
     name = var.admin_note.saas_mgmt_name
@@ -303,16 +265,37 @@ locals {
   ]
   
 
-  schema = local.schema_transformation_status == "pre-transformation" ? [{
-    id       = "userName"
-    master      = "PROFILE_MASTER"
-    pattern     = null
-    permissions = "READ_ONLY"
-    required    = true
-    title       = "Username"
-    type        = "string"
-    user_type   = "default"
-  }] : var.schema
+  schema = local.schema_transformation_status == "pre-transformation" ? [
+    {
+      id             = "userName"
+      custom_schema  = false
+      title          = "Username"
+      type           = "string"
+      master         = "PROFILE_MASTER"
+      permissions    = "READ_ONLY"
+      required       = true
+      user_type      = "default"
+      pattern        = null
+      
+      # Custom schema fields with defaults
+      description        = null
+      array_enum         = null
+      array_type         = null
+      enum               = null
+      external_name      = null
+      external_namespace = null
+      max_length         = null
+      min_length         = null
+      union              = null
+      unique             = "NOT_UNIQUE"
+      one_of             = null
+      array_one_of       = null
+      
+      # Profile mapping fields
+      to_app_mapping     = null
+      to_okta_mapping    = null
+    }
+  ] : var.schema
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
@@ -454,6 +437,51 @@ resource "okta_profile_mapping" "to_okta_mapping" {
     }
   }
 }
+
+#
+##
+###Group Assignments
+##
+#
+
+locals {
+  profile             = [for role in var.roles : role.profile]
+  app_group_names     = ["Not a department group"]
+  push_group_names    = ["Not a department group"]
+  mailing_group_names = ["Not a department group"]
+  group_profile = [for p in local.profile : length(p) == 0 ?
+    "No profile assigned" :
+    replace(
+      jsonencode(p),
+      "/^{|}$/",
+      ""
+    )
+  ]
+
+  group_notes = [for p in local.profile : format(
+    "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
+    var.name,
+    jsonencode(p)
+  )]
+
+  custom_attributes = [for index in range(length(var.roles)) : merge(
+    { notes = local.group_notes[index] },
+    { assignmentProfile = local.group_profile[index] },
+    local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
+    local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
+    local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
+  )]
+
+}
+
+resource "okta_group" "assignment_groups" {
+  count                     = length(var.roles)
+  name                      = "APP-ROLE-${upper(var.name)}-${upper(var.roles[count.index].name)}"
+  description               = "Group assigns users to ${var.name} with the role of ${var.roles[count.index].name}"
+  custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
+}
+
+
 
 resource "okta_app_group_assignments" "main_app" {
   app_id = okta_app_saml.saml_app.id
