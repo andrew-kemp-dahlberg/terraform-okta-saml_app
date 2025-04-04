@@ -1,42 +1,4 @@
 locals {
-  profile             = [for role in var.roles : role.profile]
-  app_group_names     = ["Not a department group"]
-  push_group_names    = ["Not a department group"]
-  mailing_group_names = ["Not a department group"]
-  group_profile = [for p in local.profile : length(p) == 0 ?
-    "No profile assigned" :
-    replace(
-      jsonencode(p),
-      "/^{|}$/",
-      ""
-    )
-  ]
-
-  group_notes = [for p in local.profile : format(
-    "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
-    var.name,
-    jsonencode(p)
-  )]
-
-  custom_attributes = [for index in range(length(var.roles)) : merge(
-    { notes = local.group_notes[index] },
-    { assignmentProfile = local.group_profile[index] },
-    local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
-    local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
-    local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
-  )]
-
-}
-
-resource "okta_group" "assignment_groups" {
-  count                     = length(var.roles)
-  name                      = "APP-ROLE-${upper(var.name)}-${upper(var.roles[count.index].name)}"
-  description               = "Group assigns users to ${var.name} with the role of ${var.roles[count.index].name}"
-  custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
-}
-
-
-locals {
   // Condensed Admin Note         
   admin_note = {
     name = var.admin_note.saas_mgmt_name
@@ -211,16 +173,8 @@ data "http" "saml_app_list" {
 locals {
   saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
   base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
-
 }
 
-#
-#
-##### These two data sources are the same purpose. after testing data.http.schema will be replaced
-data "okta_user_profile_mapping_source" "testing" {
-  count = saml_app_id != "none" ? 1 : 0 
-  id = local.saml_app_id
-}
 
 data "http" "schema" {
   url = local.base_schema_url
@@ -259,7 +213,12 @@ data "external" "pre-condition" {
   }
 }
 
+
+
+
+
 locals {
+
   schema_transformation_status = try(jsondecode(data.http.schema.response_body).definitions.base,"Application does not exist" 
     ) != {
     "id": "#base",
@@ -279,8 +238,8 @@ locals {
     "required": [
       "userName"
     ]
-  } || var.base_schema == [{
-      index       = "userName"
+  } || var.schema == [{
+      id       = "userName"
       master      = "PROFILE_MASTER"
       pattern     = tostring(null)
       permissions = "READ_ONLY"
@@ -289,45 +248,88 @@ locals {
       type        = "string"
       user_type   = "default"
     }] ? "transformation complete or no transformation required" : "pre-transformation"
- 
 
-  base_schema = local.schema_transformation_status == "pre-transformation" ? [{
-    index       = "userName"
-    master      = "PROFILE_MASTER"
-    pattern     = null
-    permissions = "READ_ONLY"
-    required    = true
-    title       = "Username"
-    type        = "string"
-    user_type   = "default"
-  }] : var.base_schema
+      # Base schema items
+  base_schema_raw = [
+    for item in var.schema : {
+      index       = item.id
+      title       = item.title
+      type        = item.type
+      master      = item.master != null ? item.master : "PROFILE_MASTER"
+      pattern     = item.pattern
+      permissions = item.permissions != null ? item.permissions : "READ_ONLY"
+      required    = item.required != null ? item.required : true
+      user_type   = item.user_type != null ? item.user_type : "default"
+    }
+    if item.custom_schema == false
+  ]
+  
+
+  schema = local.schema_transformation_status == "pre-transformation" ? [
+    {
+      id             = "userName"
+      custom_schema  = false
+      title          = "Username"
+      type           = "string"
+      master         = "PROFILE_MASTER"
+      permissions    = "READ_ONLY"
+      required       = true
+      user_type      = "default"
+      pattern        = null
+      
+      # Custom schema fields with defaults
+      description        = null
+      array_enum         = null
+      array_type         = null
+      enum               = null
+      external_name      = null
+      external_namespace = null
+      max_length         = null
+      min_length         = null
+      union              = null
+      unique             = "NOT_UNIQUE"
+      one_of             = null
+      array_one_of       = null
+      
+      # Profile mapping fields
+      to_app_mapping     = null
+      to_okta_mapping    = null
+    }
+  ] : var.schema
 }
 
 resource "okta_app_user_base_schema_property" "properties" {
-  count = length(local.base_schema)
+  for_each = {
+    for idx, schema in local.schema :
+    schema.id => schema
+    if schema.custom_schema == false
+  }
 
   app_id      = okta_app_saml.saml_app.id
-  index       = local.base_schema[count.index].index
-  title       = local.base_schema[count.index].title
-  type        = local.base_schema[count.index].type
-  master      = local.base_schema[count.index].master
-  pattern     = local.base_schema[count.index].pattern
-  permissions = local.base_schema[count.index].permissions
-  required    = local.base_schema[count.index].required
-  user_type   = local.base_schema[count.index].user_type
+  index       = each.value.id
+  title       = each.value.title
+  type        = each.value.type
+  master      = each.value.master
+  pattern     = each.value.pattern
+  permissions = each.value.permissions
+  required    = each.value.required
+  user_type   = each.value.user_type
 }
 
-
-resource "okta_app_user_schema_property" "custom_properties" {
-  for_each = { for idx, prop in var.custom_schema : prop.index => prop }
+resource "okta_app_user_schema_property" "custom_schema" {
+  for_each = {
+    for idx, item in var.schema :
+    item.id => item
+    if item.custom_schema == true
+  }
 
   app_id      = okta_app_saml.saml_app.id
-  index       = each.value.index
+  index       = each.value.id
   title       = each.value.title
   type        = each.value.type
   description = each.value.description
-  master      = each.value.master
-  scope       = each.value.scope
+  master      = each.value.master != null ? each.value.master : "PROFILE_MASTER"
+  scope       = each.value.to_app_mappings == null || each.value.to_okta_mappings == null ? "NONE" : "SELF"
 
   dynamic "array_one_of" {
     for_each = each.value.array_one_of != null ? each.value.array_one_of : []
@@ -344,11 +346,11 @@ resource "okta_app_user_schema_property" "custom_properties" {
   external_namespace = each.value.external_namespace
   max_length         = each.value.max_length
   min_length         = each.value.min_length
-  permissions        = each.value.permissions
+  permissions        = each.value.permissions != null || var.saml_app.preconfigured_app != null ? each.value.permissions : "READ_ONLY"
   required           = each.value.required
   union              = each.value.union
-  unique             = each.value.unique
-  user_type          = each.value.user_type
+  unique             = each.value.unique != null || var.saml_app.preconfigured_app != null ? each.value.unique : "NOT_UNIQUE"
+  user_type          = each.value.user_type != null || var.saml_app.preconfigured_app != null ? each.value.user_type : "default"
 
   dynamic "one_of" {
     for_each = each.value.one_of != null ? each.value.one_of : []
@@ -359,45 +361,126 @@ resource "okta_app_user_schema_property" "custom_properties" {
   }
 }
 
+locals {
+  to_app_mappings = [
+    for item in local.schema : {
+      id          = item.id
+      expression  = item.to_app_mapping.expression
+      push_status = item.to_app_mapping.push_status
+    }
+    if item.to_app_mapping != null
+  ]
+
+}
 
 # Fetch the user profile mapping source
 data "okta_user_profile_mapping_source" "user" {}
 
-# Create a flexible profile mapping resource that uses the variable
 resource "okta_profile_mapping" "to_app_mapping" {
   source_id          = data.okta_user_profile_mapping_source.user.id
   target_id          = okta_app_saml.saml_app.id
-  #delete_when_absent = var.delete_when_absent
-  #always_apply       = var.always_apply
+  delete_when_absent = var.environment.profile_mapping_settings.delete_when_absent
+  always_apply       = var.environment.profile_mapping_settings.always_apply
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = var.profile_mappings
+    for_each = [
+      for item in local.schema : {
+        id          = item.id
+        expression  = item.to_app_mapping.expression
+        push_status = item.to_app_mapping.push_status
+      }
+      if item.to_app_mapping != null
+    ]
+    
     content {
-      id         = mappings.value.id
-      expression = mappings.value.expression
+      id          = mappings.value.id
+      expression  = mappings.value.expression
       push_status = mappings.value.push_status
     }
   }
+}
+
+locals {
+  to_okta_mappings = [
+    for item in var.schema : {
+      id          = item.id
+      expression  = item.to_okta_mapping.expression
+      push_status = item.to_okta_mapping.push_status
+    }
+    if item.to_okta_mapping != null
+  ]
 }
 
 # Create a flexible profile mapping resource that uses the variable
 resource "okta_profile_mapping" "to_okta_mapping" {
   source_id          = okta_app_saml.saml_app.id
   target_id          = data.okta_user_profile_mapping_source.user.id
-  #delete_when_absent = var.delete_when_absent
-  #always_apply       = var.always_apply
+  delete_when_absent = var.environment.profile_mapping_settings.delete_when_absent
+  always_apply       = var.environment.profile_mapping_settings.always_apply
 
   # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = var.profile_mappings
+    for_each = [
+      for item in local.schema : {
+        id          = item.id
+        expression  = item.to_okta_mapping.expression
+        push_status = item.to_okta_mapping.push_status
+      }
+      if item.to_okta_mapping != null
+    ]
+    
     content {
-      id         = mappings.value.id
-      expression = mappings.value.expression
+      id          = mappings.value.id
+      expression  = mappings.value.expression
       push_status = mappings.value.push_status
     }
   }
 }
+
+#
+##
+###Group Assignments
+##
+#
+
+locals {
+  profile             = [for role in var.roles : role.profile]
+  app_group_names     = ["Not a department group"]
+  push_group_names    = ["Not a department group"]
+  mailing_group_names = ["Not a department group"]
+  group_profile = [for p in local.profile : length(p) == 0 ?
+    "No profile assigned" :
+    replace(
+      jsonencode(p),
+      "/^{|}$/",
+      ""
+    )
+  ]
+
+  group_notes = [for p in local.profile : format(
+    "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
+    var.name,
+    jsonencode(p)
+  )]
+
+  custom_attributes = [for index in range(length(var.roles)) : merge(
+    { notes = local.group_notes[index] },
+    { assignmentProfile = local.group_profile[index] },
+    local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
+    local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
+    local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
+  )]
+
+}
+
+resource "okta_group" "assignment_groups" {
+  count                     = length(var.roles)
+  name                      = "APP-ROLE-${upper(var.name)}-${upper(var.roles[count.index].name)}"
+  description               = "Group assigns users to ${var.name} with the role of ${var.roles[count.index].name}"
+  custom_profile_attributes = jsonencode(local.custom_attributes[count.index])
+}
+
 
 
 resource "okta_app_group_assignments" "main_app" {

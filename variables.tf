@@ -22,13 +22,11 @@
 #   sensitive = true
 # }
 
-# variables.tf
 variable "environment" {
-  description = "Information to authenticate with Okta Provider"
   type = object({
     org_name       = string
     base_url       = string
-    api_token   = string
+    api_token      = string
     authentication_policy_ids = object({
       high   = optional(string)
       medium = optional(string)
@@ -40,9 +38,18 @@ variable "environment" {
       iOS     = optional(string)
       Android = optional(string)
     })
+    
+    profile_mapping_settings = optional(object({
+      delete_when_absent = optional(bool, false)
+      always_apply = optional(bool, false)
+    }), {
+      delete_when_absent = false
+      always_apply = false
+    })
   })
   sensitive = true
 }
+
 variable "name" {
   description = "Application label"
   type        = string
@@ -368,256 +375,36 @@ variable "roles" {
   }
 }
 
-# variable "scim" {
-#   description = "How the application is provisioned"
-  # type = object({
-  #   enabled = optional(bool, false)
 
-  #   features = optional(object({
-  #     create = optional(bool, false)
-  #     update = optional(bool, false)
-  #     deactivate = optional(bool, false)
-  #   }), null)
-    
-  #   other_automation = optional(object({
-  #     create = object({
-  #       type = string
-  #       link = string
-  #     })
-  #     update = object({
-  #       type = string
-  #       link = string
-  #     })
-  #     deactivate = object({
-  #       type = string
-  #       link = string
-  #     })
-  #   }), null)
-  # })
-
-  # validation {
-  #   condition = var.scim.other_automation == null || alltrue([
-  #     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-  #     var.scim.other_automation.create.type)),
-  #     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-  #     var.scim.other_automation.update.type)),
-  #     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-  #     var.scim.deprovisioning.type))
-  #   ])
-  #   error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
-  # }
-
-  # validation {
-  #   condition = var.scim.other_automation == null || alltrue([
-  #     try((contains(["HRIS", "None"], var.scim.other_automation.create.type)))||
-  #     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.create.link))) ||
-  #     try(var.scim.other_automation.create.link == ""),
-
-  #     try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.update.type))) ||
-  #     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.update.link))) ||
-  #     try(var.scim.other_automation.update.link == ""),
-
-  #     try((contains(["HRIS", "SCIM", "None"], var.scim.other_automation.deprovisioning.type))) ||
-  #     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.scim.other_automation.deprovisioning.link))) ||
-  #     try(var.scim.other_automation.deprovisioning.link == "")
-  #   ])
-  #   error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
-  # }
-# }
-
-variable "base_schema" {
-  description = "List of application user base schema properties to configure"
-  type = list(object({
-    index       = string
-    title       = string
-    type        = string
-    master      = optional(string, "PROFILE_MASTER")
-    pattern     = optional(string)
-    permissions = optional(string, "READ_ONLY")
-    required    = optional(bool, true)
-    user_type   = optional(string, "default")
-  }))
-  default = [{
-    index       = "userName"
-    master      = "PROFILE_MASTER"
-    pattern     = null
-    permissions = "READ_ONLY"
-    required    = true
-    title       = "Username"
-    type        = "string"
-    user_type   = "default"
-  }]
-
-  validation {
-    condition = alltrue([
-      for prop in var.base_schema :
-      contains(["string", "boolean", "number", "integer", "array", "object"], prop.type)
-    ])
-    error_message = "Type must be one of: string, boolean, number, integer, array, or object."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.base_schema :
-      prop.master == null || contains(["PROFILE_MASTER", "OKTA"], prop.master)
-    ])
-    error_message = "Master must be one of: PROFILE_MASTER or OKTA."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.base_schema :
-      prop.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], prop.permissions)
-    ])
-    error_message = "Permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
-  }
-}
-variable "custom_schema" {
-  description = "List of custom schema properties to create for the Okta app"
-  type = list(object({
-    index              = string
-    title              = string
-    type               = string
-    description        = optional(string)
-    master             = optional(string, "OKTA")
-    scope              = optional(string, "NONE")
-    array_enum         = optional(list(string))
-    array_type         = optional(string)
-    enum               = optional(list(string))
-    external_name      = optional(string)
-    external_namespace = optional(string)
-    max_length         = optional(number)
-    min_length         = optional(number)
-    permissions        = optional(string, "READ_ONLY")
-    required           = optional(bool, false)
-    union              = optional(bool, false)
-    unique             = optional(string, "NOT_UNIQUE")
-    user_type          = optional(string, "default")
-    one_of = optional(list(object({
-      const = string
-      title = string
-    })))
-    array_one_of = optional(list(object({
-      const = string
-      title = string
-    })))
-  }))
-  default = []
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      contains(["string", "boolean", "number", "integer", "array", "object"], prop.type)
-    ])
-    error_message = "Property type must be one of: string, boolean, number, integer, array, or object."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      prop.master == null || contains(["PROFILE_MASTER", "OKTA"], prop.master)
-    ])
-    error_message = "Master must be either PROFILE_MASTER or OKTA."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      prop.scope == null || contains(["SELF", "NONE"], prop.scope)
-    ])
-    error_message = "Scope must be either SELF or NONE."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      prop.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], prop.permissions)
-    ])
-    error_message = "Permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      prop.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], prop.unique)
-    ])
-    error_message = "Unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      prop.union == null || prop.scope != "SELF" || prop.union == false
-    ])
-    error_message = "Union cannot be set to true if scope is set to SELF."
-  }
-
-  validation {
-    condition = alltrue([
-      for prop in var.custom_schema :
-      prop.type != "array" || prop.array_type != null
-    ])
-    error_message = "Array type must be specified when type is set to array."
-  }
-}
-
-variable "profile_mappings" {
-  description = "List of profile mappings to configure"
-  type = list(object({
-    id         = string
-    expression = string
-    push_status = optional(string)
-  }))
-  default = [
-    {
-      id         = "firstName"
-      expression = "appuser.firstName"
-    },
-    {
-      id         = "lastName"
-      expression = "appuser.lastName"
-    },
-    {
-      id         = "email"
-      expression = "appuser.email"
-    },
-    {
-      id         = "login"
-      expression = "appuser.email"
-    }
-  ]
-}
-
-variable "schema_and_mappings" {
+variable "schema" {
   description = "Combined schema configuration and profile mappings"
   type = list(object({
     # Common identifier for all types
     id           = string
     
     # Field to identify schema type
-    base_schema  = bool       # true for base schema, false for custom schema
+    custom_schema  = optional(bool, false)       # false for base schema, true for custom schema
     
     # Schema fields (for both base and custom)
     title        = string     # Required for schemas
-    schema_type  = string     # "string", "boolean", "number", "integer", "array", "object"
-    master       = optional(string)
-    permissions  = optional(string)
-    required     = optional(bool)
-    user_type    = optional(string)
-    pattern      = optional(string)     # Used by base schema
+    type  = string     # "string", "boolean", "number", "integer", "array", "object"
+    master       = optional(string, "PROFILE_MASTER")
+    permissions  = optional(string, "READ_ONLY")
+    required     = optional(bool, false)
+    user_type    = optional(string, null)
+    pattern      = optional(string, null)     # Used by base schema
     
     # Custom schema specific fields
-    description        = optional(string)
-    scope              = optional(string)
-    array_enum         = optional(list(string))
-    array_type         = optional(string)
-    enum               = optional(list(string))
-    external_name      = optional(string)
-    external_namespace = optional(string)
-    max_length         = optional(number)
-    min_length         = optional(number)
-    union              = optional(bool)
-    unique             = optional(string)
+    description        = optional(string, null)
+    array_enum         = optional(list(string),null)
+    array_type         = optional(string,null)
+    enum               = optional(list(string),null)
+    external_name      = optional(string, null)
+    external_namespace = optional(string,null)
+    max_length         = optional(number,null)
+    min_length         = optional(number,null)
+    union              = optional(bool,null)
+    unique             = optional(string, "NOT_UNIQUE")
     one_of = optional(list(object({
       const = string
       title = string
@@ -628,136 +415,73 @@ variable "schema_and_mappings" {
     })))
     
     # Profile mapping associated with this schema attribute
-    profile_mapping = optional(object({
+    to_app_mapping = optional(object({
+      expression  = string
+      push_status = optional(string)
+    }))
+    to_okta_mapping = optional(object({
       expression  = string
       push_status = optional(string)
     }))
   }))
   
-  default = [
-    # Base schema with profile mapping
-    {
-      id           = "userName"
-      base_schema  = true
-      title        = "Username"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.userName"
-      }
-    },
-    {
-      id           = "firstName"
-      base_schema  = true
-      title        = "First Name"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.firstName"
-      }
-    },
-    {
-      id           = "lastName"
-      base_schema  = true
-      title        = "Last Name"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.lastName"
-      }
-    },
-    {
-      id           = "email"
-      base_schema  = true
-      title        = "Email"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.email"
-      }
-    },
-    {
-      id           = "login"
-      base_schema  = true
-      title        = "Login"
-      schema_type  = "string"
-      master       = "PROFILE_MASTER"
-      permissions  = "READ_ONLY"
-      required     = true
-      user_type    = "default",
-      profile_mapping = {
-        expression = "appuser.email"
-      }
-    }
-  ]
+  default = [{
+      id          = "userName"
+      master      = "PROFILE_MASTER"
+      pattern     = null
+      permissions = "READ_ONLY"
+      required    = true
+      title       = "Username"
+      type        = "string"
+      user_type   = "default"
+    }]
 
   # Schema validations (for both base and custom)
   validation {
     condition = alltrue([
-      for item in var.schema_and_mappings :
-      contains(["string", "boolean", "number", "integer", "array", "object"], item.schema_type)
+      for item in var.schema :
+      contains(["string", "boolean", "number", "integer", "array", "object"], item.type)
     ])
     error_message = "Schema type must be one of: string, boolean, number, integer, array, or object."
   }
 
   validation {
     condition = alltrue([
-      for item in var.schema_and_mappings :
-      item.master == null || contains(["PROFILE_MASTER", "OKTA"], item.master)
+      for item in var.schema :
+      item.master == null || try(contains(["PROFILE_MASTER", "OKTA"], item.master))
     ])
     error_message = "Schema master must be one of: PROFILE_MASTER or OKTA."
   }
 
   validation {
     condition = alltrue([
-      for item in var.schema_and_mappings :
-      item.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions)
+      for item in var.schema :
+      item.permissions == null || try(contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions))
     ])
     error_message = "Schema permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
   }
 
-  # Custom schema validations
   validation {
     condition = alltrue([
-      for item in var.schema_and_mappings :
-      item.base_schema == true || item.scope == null || contains(["SELF", "NONE"], item.scope)
-    ])
-    error_message = "Custom schema scope must be either SELF or NONE."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.schema_and_mappings :
-      item.base_schema == true || item.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], item.unique)
+      for item in var.schema :
+      item.custom_schema == false || item.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], item.unique)
     ])
     error_message = "Custom schema unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
   }
 
   validation {
     condition = alltrue([
-      for item in var.schema_and_mappings :
-      item.base_schema == true || item.union == null || item.scope != "SELF" || item.union == false
+      for item in var.schema :
+      item.custom_schema == false || item.union == false || item.to_app_mapping != null
     ])
-    error_message = "Custom schema union cannot be set to true if scope is set to SELF."
+    error_message = "Custom schema union cannot be set to true if there is no to app mapping"
   }
 
   validation {
     condition = alltrue([
-      for item in var.schema_and_mappings :
-      item.schema_type != "array" || item.array_type != null
+      for item in var.schema :
+      item.type != "array" || item.array_type != null
     ])
-    error_message = "Schema array type must be specified when schema_type is set to array."
+    error_message = "Schema array type must be specified when type is set to array."
   }
 }
