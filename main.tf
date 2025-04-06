@@ -70,53 +70,52 @@ locals {
 
 resource "okta_app_saml" "saml_app" {
   // Basic app configuration
-  label             = local.saml_label
-  status            = var.saml_app.status
+  label             = var.saml_app.label == null ? var.name : var.saml_app.label
+  status            = var.saml_app.status != null ? var.saml_app.status : (var.saml_app.preconfigured_app == null ? "ACTIVE" : null)
   preconfigured_app = var.saml_app.preconfigured_app
-
 
   // Visual/UI settings
   logo                = var.saml_app.logo
   admin_note          = jsonencode(local.admin_note)
   enduser_note        = var.saml_app.enduser_note
-  hide_ios            = var.saml_app.hide_ios
-  hide_web            = var.saml_app.hide_web
-  auto_submit_toolbar = var.saml_app.auto_submit_toolbar
+  hide_ios            = var.saml_app.hide_ios != null ? var.saml_app.hide_ios : (var.saml_app.preconfigured_app == null ? false : null)
+  hide_web            = var.saml_app.hide_web != null ? var.saml_app.hide_web : (var.saml_app.preconfigured_app == null ? false : null)
+  auto_submit_toolbar = var.saml_app.auto_submit_toolbar != null ? var.saml_app.auto_submit_toolbar : (var.saml_app.preconfigured_app == null ? false : null)
 
   // Accessibility settings
-  accessibility_self_service       = var.saml_app.accessibility_self_service
+  accessibility_self_service       = var.saml_app.accessibility_self_service != null ? var.saml_app.accessibility_self_service : (var.saml_app.preconfigured_app == null ? false : null)
   accessibility_error_redirect_url = var.saml_app.accessibility_error_redirect_url
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
 
   // Authentication policy
-  authentication_policy = local.authentication_policy_id
-  implicit_assignment   = var.saml_app.implicit_assignment
+  authentication_policy = var.authentication_policy
+  implicit_assignment   = var.saml_app.implicit_assignment != null ? var.saml_app.implicit_assignment : (var.saml_app.preconfigured_app == null ? false : null)
 
   // User management settings
-  user_name_template             = var.saml_app.user_name_template
-  user_name_template_type        = var.saml_app.user_name_template_type
+  user_name_template             = var.saml_app.user_name_template != null ? var.saml_app.user_name_template : (var.saml_app.preconfigured_app == null ? "${source.login}" : null)
+  user_name_template_type        = var.saml_app.user_name_template_type != null ? var.saml_app.user_name_template_type : (var.saml_app.preconfigured_app == null ? "BUILT_IN" : null)
   user_name_template_suffix      = var.saml_app.user_name_template_suffix
   user_name_template_push_status = var.saml_app.user_name_template_push_status
 
   // SAML protocol settings
-  saml_version            = var.saml_app.saml_version
-  assertion_signed        = var.saml_app.assertion_signed
-  response_signed         = var.saml_app.response_signed
-  signature_algorithm     = var.saml_app.signature_algorithm
-  digest_algorithm        = var.saml_app.digest_algorithm
-  honor_force_authn       = var.saml_app.honor_force_authn
-  authn_context_class_ref = var.saml_app.authn_context_class_ref
-  idp_issuer              = var.saml_app.idp_issuer
+  saml_version            = var.saml_app.saml_version != null ? var.saml_app.saml_version : (var.saml_app.preconfigured_app == null ? "2.0" : null)
+  assertion_signed        = var.saml_app.assertion_signed != null ? var.saml_app.assertion_signed : (var.saml_app.preconfigured_app == null ? false : null)
+  response_signed         = var.saml_app.response_signed != null ? var.saml_app.response_signed : (var.saml_app.preconfigured_app == null ? false : null)
+  signature_algorithm     = var.saml_app.signature_algorithm != null ? var.saml_app.signature_algorithm : (var.saml_app.preconfigured_app == null ? "RSA_SHA256" : null)
+  digest_algorithm        = var.saml_app.digest_algorithm != null ? var.saml_app.digest_algorithm : (var.saml_app.preconfigured_app == null ? "SHA256" : null)
+  honor_force_authn       = var.saml_app.honor_force_authn != null ? var.saml_app.honor_force_authn : (var.saml_app.preconfigured_app == null ? false : null)
+  authn_context_class_ref = var.saml_app.authn_context_class_ref != null ? var.saml_app.authn_context_class_ref : (var.saml_app.preconfigured_app == null ? "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport" : null)
+  idp_issuer              = var.saml_app.idp_issuer != null ? var.saml_app.idp_issuer : (var.saml_app.preconfigured_app == null ? "http://www.okta.com/${org.externalKey}" : null)
 
   // SAML subject configuration
-  subject_name_id_format   = var.saml_app.subject_name_id_format
-  subject_name_id_template = var.saml_app.subject_name_id_template
+  subject_name_id_format   = var.saml_app.subject_name_id_format != null ? var.saml_app.subject_name_id_format : (var.saml_app.preconfigured_app == null ? "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified" : null)
+  subject_name_id_template = var.saml_app.subject_name_id_template != null ? var.saml_app.subject_name_id_template : (var.saml_app.preconfigured_app == null ? "${user.userName}" : null)
 
   // Endpoint configuration
-  acs_endpoints       = var.saml_app.acs_endpoints
+  acs_endpoints       = var.saml_app.acs_endpoints != null ? var.saml_app.acs_endpoints : (var.saml_app.preconfigured_app == null ? [] : null)
   sso_url             = var.saml_app.sso_url
-  destination         = local.destination
-  recipient           = local.recipient
+  destination         = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
+  recipient           = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
   audience            = var.saml_app.audience
   default_relay_state = var.saml_app.default_relay_state
   sp_issuer           = var.saml_app.sp_issuer
@@ -128,7 +127,7 @@ resource "okta_app_saml" "saml_app" {
 
   // Advanced SAML settings
   request_compressed          = var.saml_app.request_compressed
-  saml_signed_request_enabled = var.saml_app.saml_signed_request_enabled
+  saml_signed_request_enabled = var.saml_app.saml_signed_request_enabled != null ? var.saml_app.saml_signed_request_enabled : (var.saml_app.preconfigured_app == null ? false : null)
   inline_hook_id              = var.saml_app.inline_hook_id
 
   // Certificate settings
@@ -136,26 +135,27 @@ resource "okta_app_saml" "saml_app" {
   key_years_valid = var.saml_app.key_years_valid
 
   // App settings (JSON format)
-  app_settings_json = local.app_settings
-  app_links_json    = local.app_links_json
+  app_settings_json = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
+  app_links_json    = var.saml_app.app_links != null ? jsonencode(var.saml_app.app_links) : null
 
-  //Attribute statements
-    dynamic "attribute_statements" {
-      for_each = local.attribute_statements_combined 
-      content {
-        name      = attribute_statements.value.name
-        namespace = attribute_statements.value.namespace
-        type      = attribute_statements.value.type
+  // Attribute statements
+  dynamic "attribute_statements" {
+    for_each = local.attribute_statements_combined 
+    content {
+      name      = attribute_statements.value.name
+      namespace = attribute_statements.value.namespace
+      type      = attribute_statements.value.type
 
-        #Only set these if type is EXPRESSION
-        values    = attribute_statements.value.type == "EXPRESSION" ? attribute_statements.value.values : null
-        
-        # Only set these if type is GROUP
-        filter_type  = attribute_statements.value.type == "GROUP" ? attribute_statements.value.filterType : null
-        filter_value = attribute_statements.value.type == "GROUP" ? attribute_statements.value.filterValue : null
-      }
+      // Only set these if type is EXPRESSION
+      values    = attribute_statements.value.type == "EXPRESSION" ? attribute_statements.value.values : null
+      
+      // Only set these if type is GROUP
+      filter_type  = attribute_statements.value.type == "GROUP" ? attribute_statements.value.filterType : null
+      filter_value = attribute_statements.value.type == "GROUP" ? attribute_statements.value.filterValue : null
     }
   }
+}
+
 locals {
   find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?includeNonDeleted=false&q=${local.saml_label}"
 
