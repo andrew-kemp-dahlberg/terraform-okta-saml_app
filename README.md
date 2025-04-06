@@ -15,15 +15,12 @@ This Terraform module creates and configures an Okta SAML application with role-
 
 ```hcl
 module "okta_app" {
-  version = "0.0.1"
   source = "path/to/module"
   
   environment = {
-    org_name       = "your-org"
-    base_url       = "okta.com"
-    client_id      = "your-client-id"
-    private_key_id = "your-private-key-id"
-    private_key    = "your-private-key"
+    org_name  = "your-org"
+    base_url  = "okta.com"
+    api_token = "your-api-token"
     authentication_policy_ids = {
       high   = "policy-id-1"
       medium = "policy-id-2"
@@ -35,25 +32,26 @@ module "okta_app" {
       iOS     = "policy-id-6"
       Android = "policy-id-7"
     }
+    profile_mapping_settings = {
+      delete_when_absent = false
+      always_apply = false
+    }
   }
+  
+  name = "My Application"
   
   admin_note = {
     saas_mgmt_name  = "My Application"
     accounting_name = "MyApp"
     sso_enforced    = true
-    lifecycle_automations = {
-      provisioning = {
-        type = "SCIM"
-        link = ""
+    lifecycle = {
+      enabled = false
+      features = {
+        create = false
+        update = false
+        deactivate = false
       }
-      user_updates = {
-        type = "SCIM"
-        link = ""
-      }
-      deprovisioning = {
-        type = "SCIM"
-        link = ""
-      }
+      other_automation = null
     }
     service_accounts       = ["service@example.com"]
     app_owner              = "owner@example.com"
@@ -66,7 +64,6 @@ module "okta_app" {
     audience   = "https://example.com"
     logo       = "https://example.com/logo.png"
     label      = "My Application"
-    status     = "ACTIVE"
     
     user_attribute_statements = [
       {
@@ -91,32 +88,33 @@ module "okta_app" {
       }
     },
     {
-      name                = "Assignment"
+      name                = "User"
       attribute_statement = true
-      profile             = {}
+      profile             = {
+        role = "user"
+      }
     }
   ]
   
   authentication_policy = "high"
   
-  base_schema = [
+  schema = [
     {
-      index       = "userName"
+      id          = "userName"
       title       = "Username"
       type        = "string"
       required    = true
-      permissions = "READ_WRITE"
-    }
-  ]
-  
-  custom_schema = [
+      permissions = "READ_ONLY"
+    },
     {
-      index       = "customField"
-      title       = "Custom Field"
-      type        = "string"
-      description = "A custom field for the application"
-      scope       = "NONE"
-      permissions = "READ_WRITE"
+      id           = "customField"
+      custom_schema = true
+      title        = "Custom Field"
+      type         = "string"
+      description  = "A custom field for the application"
+      to_app_mapping = {
+        expression = "user.email"
+      }
     }
   ]
 }
@@ -126,35 +124,35 @@ module "okta_app" {
 
 ### Required Inputs
 
- Name  Description  Type  name  Application label  string  environment  Information to authenticate with Okta Provider  object  admin_note  Administrative notes and metadata about the application  object 
+ Name  Description  Type  environment  Information to authenticate with Okta Provider  object  name  Application label  string  admin_note  Administrative notes and metadata about the application  object 
 
 ### Optional Inputs
 
- Name  Description  Type  Default  saml_app  SAML application configuration  object  null  roles  Role-based assignments for groups  list(object)  See variables.tf  authentication_policy  Authentication policy level or ID  string  "high"  base_schema  Application user base schema properties  list(object)  custom_schema  Custom schema properties for the Okta app  list(object) 
+ Name  Description  Type  Default  saml_app  SAML application configuration  object  null  roles  Role-based assignments for groups  list(object)  See variables.tf  authentication_policy  Authentication policy level or ID  string  "high"  schema  Schema configuration and profile mappings  list(object)  Default username schema 
 
 ## Outputs
 
- Name  Description  `saml_app`  SAML application details (id, label, status, sign-on mode, entity ID, metadata URL)  `app_url`  Application embed URL  `app_settings`  SAML settings (SSO URL, audience, subject format)  `admin_note_details`  Admin configuration (management info, owner, lifecycle settings)  `app_roles`  Application roles configuration 
- 
+ Name  Description  saml_app  SAML application details (id, label, status, sign-on mode, entity ID)  app_url  Application embed URL  app_settings  SAML settings (SSO URL, audience, subject format)  admin_note_details  Admin configuration (management info, owner, lifecycle settings)  app_roles  Application roles configuration  features  Application features (primarily SCIM)  schema_transformation_status  Status of schema transformation 
+
 ## SAML Application Configuration
 
-The module supports extensive configuration options for SAML applications through the `saml_app` variable. This includes:
+The module supports extensive configuration options for SAML applications through the `saml_app` variable, with all properties defaulting to `null` to allow for preconfigured app templates. When using a custom application (not preconfigured), you must provide at minimum:
 
-- Basic settings (SSO URL, audience, logo)
-- Accessibility settings
-- Endpoint configurations
-- SAML protocol settings
-- Certificate management
-- User management settings
-- Attribute statements
+- `sso_url`: The SSO URL for the application
+- `audience`: The audience URI for the application
+- `logo`: URL to the application logo
+
+For custom applications, the module applies sensible defaults for all SAML settings while allowing you to override any specific setting as needed.
 
 ## Role-Based Access
 
 The module creates Okta groups for role-based access to the application. Each role can:
 
-- Be included in SAML attribute statements
+- Be included in SAML attribute statements (when `attribute_statement = true`)
 - Have a custom profile for application assignments
 - Be used for automatic privilege assignment within the application
+
+Groups are created with the naming pattern `APP-ROLE-{APP_NAME}-{ROLE_NAME}`.
 
 ## Schema Customization
 
@@ -164,6 +162,7 @@ The module allows customization of both base and custom schema properties for th
 - Validation rules
 - Permission settings
 - Master source configuration
+- Profile mappings to and from Okta
 
 ## License
 
