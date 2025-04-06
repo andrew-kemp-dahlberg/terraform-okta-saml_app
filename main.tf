@@ -67,10 +67,12 @@ locals {
   app_settings = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
 
 }
-
+locals {
+  label = var.saml_app.label == null ? var.name : var.saml_app.label
+}
 resource "okta_app_saml" "saml_app" {
   // Basic app configuration
-  label             = var.saml_app.label == null ? var.name : var.saml_app.label
+  label             = local.label
   status            = var.saml_app.status != null ? var.saml_app.status : (var.saml_app.preconfigured_app == null ? "ACTIVE" : null)
   preconfigured_app = var.saml_app.preconfigured_app
 
@@ -212,7 +214,6 @@ data "external" "pre-condition" {
     }
   }
 }
-
 
 
 
