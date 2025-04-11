@@ -63,7 +63,7 @@ variable "admin_note" {
     lifecycle       = object({
       enabled = optional(bool, false)
 
-      features = optional(object({
+      scim = optional(object({
         create = optional(bool, false)
         update = optional(bool, false)
         deactivate = optional(bool, false)
