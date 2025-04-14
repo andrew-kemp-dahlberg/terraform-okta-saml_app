@@ -63,7 +63,7 @@ variable "admin_note" {
     lifecycle       = object({
       enabled = optional(bool, false)
 
-      features = optional(object({
+      scim = optional(object({
         create = optional(bool, false)
         update = optional(bool, false)
         deactivate = optional(bool, false)
@@ -90,52 +90,52 @@ variable "admin_note" {
     additional_notes       = optional(string)
   })
 
-#   validation {
-#     condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
-#     error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
-#   }
+validation {
+  condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
+  error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
+}
 
-#   validation {
-#     condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
-#     error_message = "App owner must be a valid email address."
-#   }
+validation {
+  condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
+  error_message = "App owner must be a valid email address."
+}
 
-#   validation {
-#     condition = alltrue([
-#       for account in var.admin_note.service_accounts :
-#       can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
-#     ])
-#     error_message = "Service accounts must be valid email addresses."
-#   }
+validation {
+  condition = alltrue([
+    for account in var.admin_note.service_accounts :
+    can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+  ])
+  error_message = "Service accounts must be valid email addresses."
+}
 
-#     validation {
-#     condition = var.admin_note.lifecyle.other_automation == null || alltrue([
-#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-#       var.admin_note.lifecyle.other_automation.create.type)),
-#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-#       var.admin_note.lifecyle.other_automation.update.type)),
-#       try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-#       var.admin_note.lifecyle.deactivate.type))
-#     ])
-#     error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
-#   }
+validation {
+  condition = var.admin_note.lifecycle.other_automation == null || alltrue([
+    try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      var.admin_note.lifecycle.other_automation.create.type), false),
+    try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      var.admin_note.lifecycle.other_automation.update.type), false),
+    try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+      var.admin_note.lifecycle.other_automation.deactivate.type), false)
+  ])
+  error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+}
 
-#   validation {
-#     condition = var.admin_note.lifecyle.other_automation == null || alltrue([
-#       try((contains(["HRIS", "None"], var.admin_note.lifecyle.other_automation.create.type)))||
-#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecyle.other_automation.create.link))) ||
-#       try(var.admin_note.lifecyle.other_automation.create.link == ""),
+validation {
+  condition = var.admin_note.lifecycle.other_automation == null || alltrue([
+    try(contains(["HRIS", "None"], var.admin_note.lifecycle.other_automation.create.type), false) ||
+    try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.create.link)), false) ||
+    try(var.admin_note.lifecycle.other_automation.create.link == "", false),
 
-#       try((contains(["HRIS", "SCIM", "None"], var.admin_note.lifecyle.other_automation.update.type))) ||
-#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecyle.other_automation.update.link))) ||
-#       try(var.admin_note.lifecyle.other_automation.update.link == ""),
+    try(contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle.other_automation.update.type), false) ||
+    try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.update.link)), false) ||
+    try(var.admin_note.lifecycle.other_automation.update.link == "", false),
 
-#       try((contains(["HRIS", "SCIM", "None"], var.admin_note.lifecyle.other_automation.deactivate.type))) ||
-#       try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecyle.other_automation.deactivate.link))) ||
-#       try(var.admin_note.lifecyle.other_automation.deactivate.link == "")
-#     ])
-#     error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
-#   }
+    try(contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle.other_automation.deactivate.type), false) ||
+    try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.deactivate.link)), false) ||
+    try(var.admin_note.lifecycle.other_automation.deactivate.link == "", false)
+  ])
+  error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
+}
 }
 
 variable "saml_app" {
@@ -156,66 +156,65 @@ variable "saml_app" {
     // Accessibility settings
     accessibility_error_redirect_url = optional(string, null)
     accessibility_login_redirect_url = optional(string, null)
-    accessibility_self_service       = optional(bool, false)
-    auto_submit_toolbar              = optional(bool, false)
-    hide_ios                         = optional(bool, false)
-    hide_web                         = optional(bool, false)
+    accessibility_self_service       = optional(bool, null)
+    auto_submit_toolbar              = optional(bool, null)
+    hide_ios                         = optional(bool, null)
+    hide_web                         = optional(bool, null)
     default_relay_state              = optional(string, null)
 
     // Endpoint settings
-    acs_endpoints             = optional(list(string), [])
+    acs_endpoints             = optional(list(string), null)
     single_logout_certificate = optional(string, null)
     single_logout_issuer      = optional(string, null)
     single_logout_url         = optional(string, null)
 
     // SAML protocol settings
-    assertion_signed            = optional(bool, false)
-    authn_context_class_ref     = optional(string, "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport ")
-    digest_algorithm            = optional(string, "SHA256")
-    honor_force_authn           = optional(bool, false)
-    idp_issuer                  = optional(string, "http://www.okta.com/$${org.externalKey}")
+    assertion_signed            = optional(bool, null)
+    authn_context_class_ref     = optional(string, null)
+    digest_algorithm            = optional(string, null)
+    honor_force_authn           = optional(bool, null)
+    idp_issuer                  = optional(string, null)
     request_compressed          = optional(bool, null)
-    response_signed             = optional(bool, false)
-    saml_signed_request_enabled = optional(bool, false)
-    saml_version                = optional(string, "2.0")
-    signature_algorithm         = optional(string, "RSA_SHA256")
+    response_signed             = optional(bool, null)
+    saml_signed_request_enabled = optional(bool, null)
+    saml_version                = optional(string, null)
+    signature_algorithm         = optional(string, null)
     sp_issuer                   = optional(string, null)
-    subject_name_id_format      = optional(string, "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified")
-    subject_name_id_template    = optional(string, "$${user.userName}")
+    subject_name_id_format      = optional(string, null)
+    subject_name_id_template    = optional(string, null)
 
     // Certificate settings
     key_name        = optional(string, null)
     key_years_valid = optional(number, null)
 
     // User management settings
-    user_name_template             = optional(string, "$${source.login}")
+    user_name_template             = optional(string, null)
     user_name_template_push_status = optional(string, null)
     user_name_template_suffix      = optional(string, null)
-    user_name_template_type        = optional(string, "BUILT_IN")
+    user_name_template_type        = optional(string, null)
     inline_hook_id                 = optional(string, null)
 
     // Application settings
-    status              = optional(string, "ACTIVE")
+    status              = optional(string, null)
     enduser_note        = optional(string, null)
-    implicit_assignment = optional(bool, false)
-    app_links      = optional(map(any), null)
+    implicit_assignment = optional(bool, null)
+    app_links           = optional(map(any), null)
 
     // Attribute statements
     user_attribute_statements = optional(list(object({
       name        = string
-      name_format = optional(string, "unspecified")
+      name_format = optional(string, null)
       values      = list(string)
-    })), [])
+    })), null)
     group_attribute_statements = optional(object({
       name        = string
-      name_format = optional(string, "unspecified")
+      name_format = optional(string, null)
     }), null)
 
     // Custom settings
     custom_settings = optional(map(any), null)
   })
-
-  validation {
+validation {
   condition = var.saml_app == null || (
     var.saml_app.preconfigured_app != null || (
       var.saml_app.sso_url != null &&
@@ -226,7 +225,6 @@ variable "saml_app" {
   error_message = "For custom SAML applications (not using preconfigured_app), you must provide sso_url, audience, and logo."
 }
 
-# Validate SAML version
 validation {
   condition = var.saml_app == null || (
     var.saml_app.saml_version == null ||
@@ -235,7 +233,6 @@ validation {
   error_message = "SAML version must be either '1.1' or '2.0'."
 }
 
-#Validate user_name_template_push_status
 validation {
   condition = var.saml_app == null || (
     var.saml_app.user_name_template_push_status == null ||
@@ -244,7 +241,6 @@ validation {
   error_message = "user_name_template_push_status must be either 'PUSH' or 'DONT_PUSH'."
 }
 
-#Validate user_name_template_type
 validation {
   condition = var.saml_app == null || (
     var.saml_app.user_name_template_type == null ||
@@ -253,7 +249,6 @@ validation {
   error_message = "user_name_template_type must be one of: 'NONE', 'BUILT_IN', or 'CUSTOM'."
 }
 
-# Validate application status
 validation {
   condition = var.saml_app == null || (
     var.saml_app.status == null ||
@@ -262,7 +257,6 @@ validation {
   error_message = "Application status must be either 'ACTIVE' or 'INACTIVE'."
 }
 
-# Validate digest algorithm
 validation {
   condition = var.saml_app == null || (
     var.saml_app.digest_algorithm == null ||
@@ -271,7 +265,6 @@ validation {
   error_message = "Digest algorithm must be one of: 'SHA1', 'SHA256', or 'SHA512'."
 }
 
-# Validate signature algorithm
 validation {
   condition = var.saml_app == null || (
     var.saml_app.signature_algorithm == null ||
@@ -280,7 +273,6 @@ validation {
   error_message = "Signature algorithm must be one of: 'RSA_SHA1', 'RSA_SHA256', or 'RSA_SHA512'."
 }
 
-# Validate subject_name_id_format - common formats
 validation {
   condition = var.saml_app == null || (
     var.saml_app.subject_name_id_format == null ||
@@ -296,26 +288,24 @@ validation {
   error_message = "subject_name_id_format must be a valid SAML NameID format URN."
 }
 
-# Validate key_years_valid range and that it's provided when key_name is specified
 validation {
   condition = (
     var.saml_app == null || 
     var.saml_app.key_years_valid == null || 
     try(tonumber(var.saml_app.key_years_valid) >= 2 && tonumber(var.saml_app.key_years_valid) <= 10, false)
   )
-   error_message = "When specified, key_years_valid must be between 2 and 10 years."
+  error_message = "When specified, key_years_valid must be between 2 and 10 years."
 }
 
 validation {
   condition = (
     var.saml_app == null || 
-    try(var.saml_app.key_name == null && var.saml_app.key_years_valid == null) || 
-    try(var.saml_app.key_name != null && var.saml_app.key_years_valid != null)
+    try(var.saml_app.key_name == null && var.saml_app.key_years_valid == null, false) || 
+    try(var.saml_app.key_name != null && var.saml_app.key_years_valid != null, false)
   )
   error_message = "key_name and key_years_valid must either both be specified or both be omitted."
 }
 
-# Validate user attribute statements
 validation {
   condition = var.saml_app == null || (
     var.saml_app.user_attribute_statements == null ? true : try(alltrue([
@@ -328,6 +318,7 @@ validation {
   error_message = "Each user_attribute_statements object must have a name, valid name_format, and at least one value."
 }
 }
+
 
 variable "authentication_policy" {
   description = "This can equal low, medium, high and these will map to the authentication policy environment variable or can be an id of an auth policy. If it is custom recommendation is to use the module within the same terraform config"
