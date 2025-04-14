@@ -101,8 +101,8 @@ resource "okta_app_saml" "saml_app" {
 
   // SAML protocol settings
   saml_version            = var.saml_app.saml_version != null ? var.saml_app.saml_version : (var.saml_app.preconfigured_app == null ? "2.0" : null)
-  assertion_signed        = var.saml_app.assertion_signed != null ? var.saml_app.assertion_signed : (var.saml_app.preconfigured_app == null ? false : null)
-  response_signed         = var.saml_app.response_signed != null ? var.saml_app.response_signed : (var.saml_app.preconfigured_app == null ? false : null)
+  assertion_signed        = var.saml_app.assertion_signed != null ? var.saml_app.assertion_signed : (var.saml_app.preconfigured_app == null ? true : null)
+  response_signed         = var.saml_app.response_signed != null ? var.saml_app.response_signed : (var.saml_app.preconfigured_app == null ? true : null)
   signature_algorithm     = var.saml_app.signature_algorithm != null ? var.saml_app.signature_algorithm : (var.saml_app.preconfigured_app == null ? "RSA_SHA256" : null)
   digest_algorithm        = var.saml_app.digest_algorithm != null ? var.saml_app.digest_algorithm : (var.saml_app.preconfigured_app == null ? "SHA256" : null)
   honor_force_authn       = var.saml_app.honor_force_authn != null ? var.saml_app.honor_force_authn : (var.saml_app.preconfigured_app == null ? false : null)
@@ -288,7 +288,7 @@ locals {
       max_length         = null
       min_length         = null
       union              = null
-      unique             = "NOT_UNIQUE"
+      unique             = null
       one_of             = null
       array_one_of       = null
       
