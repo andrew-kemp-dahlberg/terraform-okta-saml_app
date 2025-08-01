@@ -161,24 +161,14 @@ resource "okta_app_saml" "saml_app" {
   }
 }
 
-locals {
-  find_app_url = "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?includeNonDeleted=false&q=${local.label}"
-}
-
-data "http" "saml_app_list" {
-  url = local.find_app_url
-  method = "GET"
-  request_headers = {
-    Accept = "application/json"
-    Authorization = "SSWS ${var.environment.api_token}"
-  }
+data "okta_app_saml" "existing_app" {
+  label = local.label
 }
 
 locals {
-  saml_app_id = try(jsondecode(data.http.saml_app_list.response_body)[0].id, "none")
-  base_schema_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
+  saml_app_id = try(data.okta_app_saml.existing_app.id, "none")
+  base_schema_url = "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
 }
-
 
 data "http" "schema" {
   url = local.base_schema_url
@@ -197,14 +187,8 @@ data "external" "pre-condition" {
   ]
 
   lifecycle {
-    # Check SAML app list API response
-    precondition {
-      condition = data.http.saml_app_list.status_code == 200
-      error_message = "API request failed with status code: ${data.http.saml_app_list.status_code}. Error: ${data.http.saml_app_list.response_body}"
-    }
-
     # Check SAML app ID
-      precondition {
+    precondition {
       condition     = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
       error_message = "An application with label '${local.label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
     }

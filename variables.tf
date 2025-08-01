@@ -22,33 +22,6 @@
 #   sensitive = true
 # }
 
-variable "environment" {
-  type = object({
-    org_name       = string
-    base_url       = string
-    api_token      = string
-    authentication_policy_ids = object({
-      high   = optional(string)
-      medium = optional(string)
-      low    = optional(string)
-    })
-    device_assurance_policy_ids = object({
-      Mac     = optional(string)
-      Windows = optional(string)
-      iOS     = optional(string)
-      Android = optional(string)
-    })
-    
-    profile_mapping_settings = optional(object({
-      delete_when_absent = optional(bool, false)
-      always_apply = optional(bool, false)
-    }), {
-      delete_when_absent = false
-      always_apply = false
-    })
-  })
-  sensitive = true
-}
 
 variable "name" {
   description = "Application label"
@@ -60,30 +33,6 @@ variable "admin_note" {
     saas_mgmt_name  = string
     accounting_name = string
     sso_enforced    = bool
-    lifecycle       = object({
-      enabled = optional(bool, false)
-
-      scim = optional(object({
-        create = optional(bool, false)
-        update = optional(bool, false)
-        deactivate = optional(bool, false)
-      }), null)
-      
-      other_automation = optional(object({
-        create = object({
-          type = string
-          link = string
-        })
-        update = object({
-          type = string
-          link = string
-        })
-        deactivate = object({
-          type = string
-          link = string
-        })
-      }), null)
-    })
     service_accounts       = list(string)
     app_owner              = string
     last_access_audit_date = string
@@ -331,7 +280,6 @@ variable "roles" {
   type = list(object({
     name                = string
     attribute_statement = optional(bool, false)
-    claim               = optional(bool, false)
     profile             = optional(map(string),{}) 
   }))
 
@@ -339,7 +287,6 @@ variable "roles" {
     name                = "assignment"
     profile             = {}
     attribute_statement = false
-    claim               = false
   }]
 
   validation {

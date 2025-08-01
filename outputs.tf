@@ -56,9 +56,13 @@ output "schema_transformation_status" {
   value       = local.schema_transformation_status
 }
 
-output "saml_app_list" {
-  description = "Current app default schema"
-  value       = data.http.saml_app_list.response_body
+output "existing_app_check" {
+  description = "Details of any existing app with the same label"
+  value = {
+    id     = try(data.okta_app_saml.existing_app.id, "none")
+    label  = try(data.okta_app_saml.existing_app.label, "none")
+    status = try(data.okta_app_saml.existing_app.status, "none")
+  }
 }
 
 
