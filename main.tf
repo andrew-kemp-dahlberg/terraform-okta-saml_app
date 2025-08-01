@@ -1,31 +1,37 @@
+#
+## Application Configuration Locals
+#
+
 locals {
-  // Condensed Admin Note         
+  # Admin Note Configuration
   admin_note = {
-    name = var.admin_note.saas_mgmt_name
-    sso  = var.admin_note.sso_enforced
-    # auto = distinct([
-    #   var.admin_note.lifecycle_automations.provisioning.type,
-    #   var.admin_note.lifecycle_automations.user_updates.type,
-    #   var.admin_note.lifecycle_automations.deprovisioning.type
-    # ])
+    name  = var.admin_note.saas_mgmt_name
+    sso   = var.admin_note.sso_enforced
     owner = var.admin_note.app_owner
     audit = var.admin_note.last_access_audit_date
   }
-  // Authentication policy
-  authentication_policy_id = contains(["low", "medium", "high"], var.authentication_policy) ? var.environment.authentication_policy_ids[var.authentication_policy] : var.authentication_policy
 
-  // Basic App Settings to get right. 
-  saml_label  = var.saml_app.label == null ? var.name : var.saml_app.label
-  recipient   = var.saml_app.recipient == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.recipient
-  destination = var.saml_app.destination == null && var.saml_app.preconfigured_app == null ? var.saml_app.sso_url : var.saml_app.destination
-  app_links_json = var.saml_app.app_links != null ? jsonencode(var.saml_app.app_links) : null
+  # Authentication Policy Resolution
+  authentication_policy_id = contains(["low", "medium", "high"], var.authentication_policy) ? 
+    var.environment.authentication_policy_ids[var.authentication_policy] : 
+    var.authentication_policy
 
+  # SAML Application Settings
+  label       = coalesce(var.saml_app.label, var.name)
+  recipient   = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.recipient, var.saml_app.sso_url) : var.saml_app.recipient
+  destination = var.saml_app.preconfigured_app == null ? coalesce(var.saml_app.destination, var.saml_app.sso_url) : var.saml_app.destination
+}
 
-  //Formatting user attribute statements from saml_app variable
-  user_attribute_statements = var.saml_app.user_attribute_statements == null ? null : [
+#
+## Attribute Statements Configuration
+#
+
+locals {
+  # User Attribute Statements
+  user_attribute_statements = var.saml_app.user_attribute_statements == null ? [] : [
     for attr in var.saml_app.user_attribute_statements : {
-      type = "EXPRESSION"
-      name = attr.name
+      type      = "EXPRESSION"
+      name      = attr.name
       namespace = lookup({
         "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
         "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
@@ -35,40 +41,37 @@ locals {
     }
   ]
 
+  # Group Attribute Statements
   attribute_statement_roles = [
     for role in var.roles : role
     if role.attribute_statement == true
   ]
+  
   group_attribute_statements_regex = length(local.attribute_statement_roles) > 0 ? format(
     "^APP-ROLE-%s-(%s)$",
     upper(var.name),
     join("|", [for role in local.attribute_statement_roles : upper(role.name)])
   ) : "^$"
 
-  group_attribute_statements = var.saml_app.group_attribute_statements != null ? [
-      {
-        type = "GROUP"
-        name = var.saml_app.group_attribute_statements.name
-        namespace = lookup({
-          "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
-          "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
-          "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
-        }, var.saml_app.group_attribute_statements.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
-        filterType  = "REGEX"
-        filterValue = local.group_attribute_statements_regex
-      }
-  ] : null
+  group_attribute_statements = var.saml_app.group_attribute_statements == null ? [] : [
+    {
+      type = "GROUP"
+      name = var.saml_app.group_attribute_statements.name
+      namespace = lookup({
+        "basic"         = "urn:oasis:names:tc:SAML:2.0:attrname-format:basic",
+        "uri reference" = "urn:oasis:names:tc:SAML:2.0:attrname-format:uri",
+        "unspecified"   = "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified",
+      }, var.saml_app.group_attribute_statements.name_format, "urn:oasis:names:tc:SAML:2.0:attrname-format:unspecified")
+      filterType  = "REGEX"
+      filterValue = local.group_attribute_statements_regex
+    }
+  ]
 
-  // Combine user and group attribute statements with custom_settings var to be pushed through settings
+  # Combined Attribute Statements
   attribute_statements_combined = concat(
-      var.saml_app.user_attribute_statements != null ? local.user_attribute_statements : [],
-      var.saml_app.group_attribute_statements != null ? local.group_attribute_statements : []
-    )
-  app_settings = var.saml_app.custom_settings != null ? jsonencode(var.saml_app.custom_settings) : null
-
-}
-locals {
-  label = var.saml_app.label == null ? var.name : var.saml_app.label
+    local.user_attribute_statements,
+    local.group_attribute_statements
+  )
 }
 resource "okta_app_saml" "saml_app" {
   // Basic app configuration
@@ -159,8 +162,7 @@ resource "okta_app_saml" "saml_app" {
 }
 
 locals {
-  find_app_url =  "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?includeNonDeleted=false&q=${local.saml_label}"
-
+  find_app_url = "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/apps?includeNonDeleted=false&q=${local.label}"
 }
 
 data "http" "saml_app_list" {
@@ -202,9 +204,9 @@ data "external" "pre-condition" {
     }
 
     # Check SAML app ID
-    precondition {
-      condition = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
-      error_message = "An application with label '${local.saml_label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
+      precondition {
+      condition     = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
+      error_message = "An application with label '${local.label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
     }
 
     # Check schema API response
@@ -218,10 +220,13 @@ data "external" "pre-condition" {
 
 
 
-locals {
+#
+## Schema Configuration
+#
 
-  schema_transformation_status = try(jsondecode(data.http.schema.response_body).definitions.base,"Application does not exist" 
-    ) != {
+locals {
+  # Schema transformation status check
+  default_okta_schema = {
     "id": "#base",
     "type": "object",
     "properties": {
@@ -239,71 +244,44 @@ locals {
     "required": [
       "userName"
     ]
-  } || var.schema == [{
-      id       = "userName"
-      master      = "PROFILE_MASTER"
-      pattern     = tostring(null)
-      permissions = "READ_ONLY"
-      required    = true
-      title       = "Username"
-      type        = "string"
-      user_type   = "default"
-    }] ? "transformation complete or no transformation required" : "pre-transformation"
+  }
 
-      # Base schema items
-  base_schema_raw = [
-    for item in var.schema : {
-      index       = item.id
-      title       = item.title
-      type        = item.type
-      master      = item.master != null ? item.master : "PROFILE_MASTER"
-      pattern     = item.pattern
-      permissions = item.permissions != null ? item.permissions : "READ_ONLY"
-      required    = item.required != null ? item.required : true
-      user_type   = item.user_type != null ? item.user_type : "default"
-    }
-    if item.custom_schema == false
-  ]
-  
+  default_username_schema = [{
+    id          = "userName"
+    title       = "Username"
+    type        = "string"
+    master      = "PROFILE_MASTER"
+    permissions = "READ_ONLY"
+    required    = true
+    user_type   = "default"
+    pattern     = null
+  }]
 
-  schema = local.schema_transformation_status == "pre-transformation" ? [
-    {
-      id             = "userName"
-      custom_schema  = false
-      title          = "Username"
-      type           = "string"
-      master         = "PROFILE_MASTER"
-      permissions    = "READ_ONLY"
-      required       = true
-      user_type      = "default"
-      pattern        = null
-      
-      # Custom schema fields with defaults
-      description        = null
-      array_enum         = null
-      array_type         = null
-      enum               = null
-      external_name      = null
-      external_namespace = null
-      max_length         = null
-      min_length         = null
-      union              = null
-      unique             = null
-      one_of             = null
-      array_one_of       = null
-      
-      # Profile mapping fields
-      to_app_mapping     = null
-      to_okta_mapping    = null
-    }
-  ] : var.schema
+  schema_transformation_status = try(
+    jsondecode(data.http.schema.response_body).definitions.base != local.default_okta_schema || 
+    var.base_schema == local.default_username_schema ? 
+    "transformation complete or no transformation required" : 
+    "pre-transformation",
+    "pre-transformation"
+  )
+
+  # Use base_schema directly - no complex transformation needed
+  processed_base_schema = local.schema_transformation_status == "pre-transformation" ? 
+    local.default_username_schema : 
+    var.base_schema
+
+  # Use custom_schema directly
+  processed_custom_schema = var.custom_schema
 }
 
-resource "okta_app_user_base_schema_property" "properties" {
+#
+## Schema Resources
+#
+
+resource "okta_app_user_base_schema_property" "base_schema" {
   for_each = {
-    for idx, schema in local.schema :
+    for schema in local.processed_base_schema :
     schema.id => schema
-    if schema.custom_schema == false
   }
 
   app_id      = okta_app_saml.saml_app.id
@@ -319,9 +297,8 @@ resource "okta_app_user_base_schema_property" "properties" {
 
 resource "okta_app_user_schema_property" "custom_schema" {
   for_each = {
-    for idx, item in var.schema :
-    item.id => item
-    if item.custom_schema == true
+    for schema in local.processed_custom_schema :
+    schema.id => schema
   }
 
   app_id      = okta_app_saml.saml_app.id
@@ -329,9 +306,13 @@ resource "okta_app_user_schema_property" "custom_schema" {
   title       = each.value.title
   type        = each.value.type
   description = each.value.description
-  master      = each.value.master != null ? each.value.master : "PROFILE_MASTER"
-  scope       = each.value.to_app_mappings == null || each.value.to_okta_mappings == null ? "NONE" : "SELF"
+  master      = coalesce(each.value.master, "PROFILE_MASTER")
+  scope       = length(var.profile_mappings.to_app) > 0 || length(var.profile_mappings.to_okta) > 0 ? "SELF" : "NONE"
 
+  # Array configurations
+  array_enum = each.value.array_enum
+  array_type = each.value.array_type
+  
   dynamic "array_one_of" {
     for_each = each.value.array_one_of != null ? each.value.array_one_of : []
     content {
@@ -340,18 +321,17 @@ resource "okta_app_user_schema_property" "custom_schema" {
     }
   }
 
-  array_enum         = each.value.array_enum
-  array_type         = each.value.array_type
+  # Field constraints
   enum               = each.value.enum
   external_name      = each.value.external_name
   external_namespace = each.value.external_namespace
   max_length         = each.value.max_length
   min_length         = each.value.min_length
-  permissions        = each.value.permissions != null || var.saml_app.preconfigured_app != null ? each.value.permissions : "READ_ONLY"
+  permissions        = coalesce(each.value.permissions, "READ_ONLY")
   required           = each.value.required
   union              = each.value.union
-  unique             = each.value.unique != null || var.saml_app.preconfigured_app != null ? each.value.unique : "NOT_UNIQUE"
-  user_type          = each.value.user_type != null || var.saml_app.preconfigured_app != null ? each.value.user_type : "default"
+  unique             = coalesce(each.value.unique, "NOT_UNIQUE")
+  user_type          = coalesce(each.value.user_type, "default")
 
   dynamic "one_of" {
     for_each = each.value.one_of != null ? each.value.one_of : []
@@ -362,38 +342,22 @@ resource "okta_app_user_schema_property" "custom_schema" {
   }
 }
 
-locals {
-  to_app_mappings = [
-    for item in local.schema : {
-      id          = item.id
-      expression  = item.to_app_mapping.expression
-      push_status = item.to_app_mapping.push_status
-    }
-    if item.to_app_mapping != null
-  ]
+#
+## Profile Mappings
+#
 
-}
-
-# Fetch the user profile mapping source
 data "okta_user_profile_mapping_source" "user" {}
 
-resource "okta_profile_mapping" "to_app_mapping" {
+resource "okta_profile_mapping" "to_app" {
+  count = length(var.profile_mappings.to_app) > 0 ? 1 : 0
+  
   source_id          = data.okta_user_profile_mapping_source.user.id
   target_id          = okta_app_saml.saml_app.id
   delete_when_absent = var.environment.profile_mapping_settings.delete_when_absent
   always_apply       = var.environment.profile_mapping_settings.always_apply
 
-  # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = [
-      for item in local.schema : {
-        id          = item.id
-        expression  = item.to_app_mapping.expression
-        push_status = item.to_app_mapping.push_status
-      }
-      if item.to_app_mapping != null
-    ]
-    
+    for_each = var.profile_mappings.to_app
     content {
       id          = mappings.value.id
       expression  = mappings.value.expression
@@ -402,35 +366,16 @@ resource "okta_profile_mapping" "to_app_mapping" {
   }
 }
 
-locals {
-  to_okta_mappings = [
-    for item in var.schema : {
-      id          = item.id
-      expression  = item.to_okta_mapping.expression
-      push_status = item.to_okta_mapping.push_status
-    }
-    if item.to_okta_mapping != null
-  ]
-}
-
-# Create a flexible profile mapping resource that uses the variable
-resource "okta_profile_mapping" "to_okta_mapping" {
+resource "okta_profile_mapping" "to_okta" {
+  count = length(var.profile_mappings.to_okta) > 0 ? 1 : 0
+  
   source_id          = okta_app_saml.saml_app.id
   target_id          = data.okta_user_profile_mapping_source.user.id
   delete_when_absent = var.environment.profile_mapping_settings.delete_when_absent
   always_apply       = var.environment.profile_mapping_settings.always_apply
 
-  # Dynamically create mappings based on the variable
   dynamic "mappings" {
-    for_each = [
-      for item in local.schema : {
-        id          = item.id
-        expression  = item.to_okta_mapping.expression
-        push_status = item.to_okta_mapping.push_status
-      }
-      if item.to_okta_mapping != null
-    ]
-    
+    for_each = var.profile_mappings.to_okta
     content {
       id          = mappings.value.id
       expression  = mappings.value.expression
@@ -440,39 +385,36 @@ resource "okta_profile_mapping" "to_okta_mapping" {
 }
 
 #
-##
-###Group Assignments
-##
+## Group Assignments
 #
 
 locals {
-  profile             = [for role in var.roles : role.profile]
-  app_group_names     = ["Not a department group"]
-  push_group_names    = ["Not a department group"]
-  mailing_group_names = ["Not a department group"]
-  group_profile = [for p in local.profile : length(p) == 0 ?
-    "No profile assigned" :
-    replace(
-      jsonencode(p),
-      "/^{|}$/",
-      ""
-    )
+  # Group Configuration
+  group_configs = [
+    for idx, role in var.roles : {
+      index       = idx
+      role        = role
+      profile_str = length(role.profile) == 0 ? "No profile assigned" : replace(jsonencode(role.profile), "/^{|}$/", "")
+      note        = format(
+        "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
+        var.name,
+        jsonencode(role.profile)
+      )
+    }
   ]
 
-  group_notes = [for p in local.profile : format(
-    "Assigns the user to the %s with the following profile.\n%s\nGroup is managed by Terraform. Do not edit manually.",
-    var.name,
-    jsonencode(p)
-  )]
-
-  custom_attributes = [for index in range(length(var.roles)) : merge(
-    { notes = local.group_notes[index] },
-    { assignmentProfile = local.group_profile[index] },
-    local.app_group_names != "" ? { applicationAssignments = local.app_group_names } : {},
-    local.mailing_group_names != "" ? { mailingLists = local.mailing_group_names } : {},
-    local.push_group_names != "" ? { pushGroups = local.push_group_names } : {}
-  )]
-
+  # Custom attributes for groups
+  custom_attributes = [
+    for config in local.group_configs : merge(
+      { 
+        notes                  = config.note,
+        assignmentProfile      = config.profile_str,
+        applicationAssignments = ["Not a department group"],
+        mailingLists          = ["Not a department group"],
+        pushGroups            = ["Not a department group"]
+      }
+    )
+  ]
 }
 
 resource "okta_group" "assignment_groups" {
@@ -484,17 +426,18 @@ resource "okta_group" "assignment_groups" {
 
 
 
-resource "okta_app_group_assignments" "main_app" {
+resource "okta_app_group_assignments" "app_groups" {
   app_id = okta_app_saml.saml_app.id
 
   dynamic "group" {
-    for_each = okta_group.assignment_groups[*].id
-    iterator = group_id
+    for_each = okta_group.assignment_groups
+    iterator = grp
     content {
-      id       = group_id.value
-      profile  = local.schema_transformation_status == "transformation complete or no transformation required"? jsonencode(
-        var.roles[group_id.key].profile) : jsonencode({})
-      priority = tonumber(group_id.key) + 1
+      id       = grp.value.id
+      profile  = local.schema_transformation_status == "transformation complete or no transformation required" ? 
+                 jsonencode(var.roles[grp.key].profile) : 
+                 jsonencode({})
+      priority = grp.key + 1
     }
   }
 }
