@@ -12,9 +12,7 @@ locals {
   }
 
   # Authentication Policy Resolution
-  authentication_policy_id = contains(["low", "medium", "high"], var.authentication_policy) ? 
-    var.environment.authentication_policy_ids[var.authentication_policy] : 
-    var.authentication_policy
+  authentication_policy_id = contains(["low", "medium", "high"], var.authentication_policy) ? var.environment.authentication_policy_ids[var.authentication_policy] : var.authentication_policy
 
   # SAML Application Settings
   label       = coalesce(var.saml_app.label, var.name)
@@ -250,9 +248,7 @@ locals {
   )
 
   # Use base_schema directly - no complex transformation needed
-  processed_base_schema = local.schema_transformation_status == "pre-transformation" ? 
-    local.default_username_schema : 
-    var.base_schema
+  processed_base_schema = local.schema_transformation_status == "pre-transformation" ? local.default_username_schema : var.base_schema
 
   # Use custom_schema directly
   processed_custom_schema = var.custom_schema
@@ -418,9 +414,7 @@ resource "okta_app_group_assignments" "app_groups" {
     iterator = grp
     content {
       id       = grp.value.id
-      profile  = local.schema_transformation_status == "transformation complete or no transformation required" ? 
-                 jsonencode(var.roles[grp.key].profile) : 
-                 jsonencode({})
+      profile  = local.schema_transformation_status == "transformation complete or no transformation required" ? jsonencode(var.roles[grp.key].profile) : jsonencode({})
       priority = grp.key + 1
     }
   }
