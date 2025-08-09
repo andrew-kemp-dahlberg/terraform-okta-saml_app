@@ -7,11 +7,6 @@ variable "environment" {
     client_id      = string
     private_key_id = string
     private_key    = string
-    authentication_policy_ids = object({
-      high   = optional(string)
-      medium = optional(string)
-      low    = optional(string)
-    })
     device_assurance_policy_ids = object({
       Mac     = optional(string)
       Windows = optional(string)

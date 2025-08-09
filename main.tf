@@ -2,6 +2,12 @@
 ## Application Configuration Locals
 #
 
+# Data source to fetch authentication policy by name
+data "okta_policy" "authentication" {
+  name = var.authentication_policy
+  type = "ACCESS_POLICY"
+}
+
 locals {
   # Admin Note Configuration
   admin_note = {
@@ -10,9 +16,6 @@ locals {
     owner = var.admin_note.app_owner
     audit = var.admin_note.last_access_audit_date
   }
-
-  # Authentication Policy Resolution
-  authentication_policy_id = contains(["low", "medium", "high"], var.authentication_policy) ? var.environment.authentication_policy_ids[var.authentication_policy] : var.authentication_policy
 
   # SAML Application Settings
   label       = coalesce(var.saml_app.label, var.name)
@@ -91,7 +94,7 @@ resource "okta_app_saml" "saml_app" {
   accessibility_login_redirect_url = var.saml_app.accessibility_login_redirect_url
 
   // Authentication policy
-  authentication_policy = var.authentication_policy
+  authentication_policy = data.okta_policy.authentication.id
   implicit_assignment   = var.saml_app.implicit_assignment != null ? var.saml_app.implicit_assignment : (var.saml_app.preconfigured_app == null ? false : null)
 
   // User management settings
