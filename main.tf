@@ -113,7 +113,7 @@ resource "okta_app_saml" "saml_app" {
   digest_algorithm        = var.saml_app.digest_algorithm != null ? var.saml_app.digest_algorithm : (var.saml_app.preconfigured_app == null ? "SHA256" : null)
   honor_force_authn       = var.saml_app.honor_force_authn != null ? var.saml_app.honor_force_authn : (var.saml_app.preconfigured_app == null ? false : null)
   authn_context_class_ref = var.saml_app.authn_context_class_ref != null ? var.saml_app.authn_context_class_ref : (var.saml_app.preconfigured_app == null ? "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport" : null)
-  idp_issuer              = var.saml_app.idp_issuer != null ? var.saml_app.idp_issuer : (var.saml_app.preconfigured_app == null ? "http://www.okta.com/${org.externalKey}" : null)
+  idp_issuer              = var.saml_app.idp_issuer != null ? var.saml_app.idp_issuer : (var.saml_app.preconfigured_app == null ? "http://www.okta.com/$${org.externalKey}" : null)
 
   // SAML subject configuration
   subject_name_id_format   = var.saml_app.subject_name_id_format != null ? var.saml_app.subject_name_id_format : (var.saml_app.preconfigured_app == null ? "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified" : null)
