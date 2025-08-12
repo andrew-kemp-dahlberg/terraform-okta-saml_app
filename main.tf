@@ -164,45 +164,45 @@ resource "okta_app_saml" "saml_app" {
   }
 }
 
-data "okta_app_saml" "existing_app" {
-  label = local.label
-}
+# data "okta_app_saml" "existing_app" {
+#   label = local.label
+# }
 
-locals {
-  saml_app_id = try(data.okta_app_saml.existing_app.id, "none")
-  base_schema_url = "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
-}
+# locals {
+#   saml_app_id = try(data.okta_app_saml.existing_app.id, "none")
+#   base_schema_url = "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
+# }
 
-data "http" "schema" {
-  url = local.base_schema_url
-  method = "GET"
-  request_headers = {
-    Accept = "application/json"
-    Authorization = "SSWS ${var.environment.api_token}"
-  }
-}
+# data "http" "schema" {
+#   url = local.base_schema_url
+#   method = "GET"
+#   request_headers = {
+#     Accept = "application/json"
+#     Authorization = "SSWS ${var.environment.api_token}"
+#   }
+# }
 
 
-data "external" "pre-condition" {
-  program = ["bash", "-c", <<-EOT
-    echo '{"running": "precondition"}'
-  EOT
-  ]
+# data "external" "pre-condition" {
+#   program = ["bash", "-c", <<-EOT
+#     echo '{"running": "precondition"}'
+#   EOT
+#   ]
 
-  lifecycle {
-    # Check SAML app ID
-    precondition {
-      condition     = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
-      error_message = "An application with label '${local.label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
-    }
+#   lifecycle {
+#     # Check SAML app ID
+#     precondition {
+#       condition     = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
+#       error_message = "An application with label '${local.label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
+#     }
 
-    # Check schema API response
-    precondition {
-      condition = data.http.schema.status_code == 200 || local.saml_app_id == "none"
-      error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
-    }
-  }
-}
+#     # Check schema API response
+#     precondition {
+#       condition = data.http.schema.status_code == 200 || local.saml_app_id == "none"
+#       error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
+#     }
+#   }
+# }
 
 
 
