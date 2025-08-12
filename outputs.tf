@@ -56,14 +56,14 @@ output "features" {
 #   value       = local.schema_transformation_status
 # }
 
-output "existing_app_check" {
-  description = "Details of any existing app with the same label"
-  value = {
-    id     = try(data.okta_app_saml.existing_app.id, "none")
-    label  = try(data.okta_app_saml.existing_app.label, "none")
-    status = try(data.okta_app_saml.existing_app.status, "none")
-  }
-}
+# output "existing_app_check" {
+#   description = "Details of any existing app with the same label"
+#   value = {
+#     id     = try(data.okta_app_saml.existing_app.id, "none")
+#     label  = try(data.okta_app_saml.existing_app.label, "none")
+#     status = try(data.okta_app_saml.existing_app.status, "none")
+#   }
+# }
 
 
 # output "profile_mapping_source" {
