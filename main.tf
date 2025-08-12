@@ -338,8 +338,8 @@ resource "okta_profile_mapping" "to_app" {
   
   source_id          = data.okta_user_profile_mapping_source.user.id
   target_id          = okta_app_saml.saml_app.id
-  delete_when_absent = false #var.environment.profile_mapping_settings.delete_when_absent
-  always_apply       = true #var.environment.profile_mapping_settings.always_apply
+  delete_when_absent = true #var.environment.profile_mapping_settings.delete_when_absent
+  always_apply       = false #var.environment.profile_mapping_settings.always_apply
 
   dynamic "mappings" {
     for_each = var.profile_mappings.to_app
@@ -356,8 +356,8 @@ resource "okta_profile_mapping" "to_okta" {
   
   source_id          = okta_app_saml.saml_app.id
   target_id          = data.okta_user_profile_mapping_source.user.id
-  delete_when_absent = var.environment.profile_mapping_settings.delete_when_absent
-  always_apply       = var.environment.profile_mapping_settings.always_apply
+  delete_when_absent = true #var.environment.profile_mapping_settings.delete_when_absent
+  always_apply       = false #var.environment.profile_mapping_settings.always_apply
 
   dynamic "mappings" {
     for_each = var.profile_mappings.to_okta
