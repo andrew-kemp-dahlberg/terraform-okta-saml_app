@@ -117,7 +117,7 @@ resource "okta_app_saml" "saml_app" {
 
   // SAML subject configuration
   subject_name_id_format   = var.saml_app.subject_name_id_format != null ? var.saml_app.subject_name_id_format : (var.saml_app.preconfigured_app == null ? "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified" : null)
-  subject_name_id_template = var.saml_app.subject_name_id_template != null ? var.saml_app.subject_name_id_template : (var.saml_app.preconfigured_app == null ? "${user.userName}" : null)
+  subject_name_id_template = var.saml_app.subject_name_id_template != null ? var.saml_app.subject_name_id_template : (var.saml_app.preconfigured_app == null ? "$${user.userName}" : null)
 
   // Endpoint configuration
   acs_endpoints       = var.saml_app.acs_endpoints != null ? var.saml_app.acs_endpoints : (var.saml_app.preconfigured_app == null ? [] : null)
