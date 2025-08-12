@@ -1,5 +1,5 @@
 version: 1
-module_version: "0.1.5"
+module_version: "0.1.6"
 stack_defaults:
   before_init:
     - echo "Initializing saml_app module"
