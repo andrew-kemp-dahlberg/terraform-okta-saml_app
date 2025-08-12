@@ -4,65 +4,65 @@ variable "name" {
   type        = string
 }
 
-variable "admin_note" {
-  type = object({
-    saas_mgmt_name  = string
-    accounting_name = string
-    sso_enforced    = bool
-    service_accounts       = list(string)
-    app_owner              = string
-    last_access_audit_date = string
-    additional_notes       = optional(string)
-  })
+# variable "admin_note" {
+#   type = object({
+#     saas_mgmt_name  = string
+#     accounting_name = string
+#     sso_enforced    = bool
+#     service_accounts       = list(string)
+#     app_owner              = string
+#     last_access_audit_date = string
+#     additional_notes       = optional(string)
+#   })
 
 
-validation {
-  condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
-  error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
-}
+# validation {
+#   condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
+#   error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
+# }
 
-validation {
-  condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
-  error_message = "App owner must be a valid email address."
-}
+# validation {
+#   condition     = can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", var.admin_note.app_owner))
+#   error_message = "App owner must be a valid email address."
+# }
 
-validation {
-  condition = alltrue([
-    for account in var.admin_note.service_accounts :
-    can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
-  ])
-  error_message = "Service accounts must be valid email addresses."
-}
+# validation {
+#   condition = alltrue([
+#     for account in var.admin_note.service_accounts :
+#     can(regex("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$", account))
+#   ])
+#   error_message = "Service accounts must be valid email addresses."
+# }
 
-validation {
-  condition = var.admin_note.lifecycle.other_automation == null || alltrue([
-    try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle.other_automation.create.type), false),
-    try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle.other_automation.update.type), false),
-    try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
-      var.admin_note.lifecycle.other_automation.deactivate.type), false)
-  ])
-  error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
-}
+# validation {
+#   condition = var.admin_note.lifecycle.other_automation == null || alltrue([
+#     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.admin_note.lifecycle.other_automation.create.type), false),
+#     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.admin_note.lifecycle.other_automation.update.type), false),
+#     try(contains(["HRIS", "Okta Workflows fully automated", "Okta workflows Zendesk", "AWS", "None"],
+#       var.admin_note.lifecycle.other_automation.deactivate.type), false)
+#   ])
+#   error_message = "Alternative Lifecycle automation methods must be one of: HRIS, Okta Workflows fully automated, Okta workflows Zendesk, AWS, None."
+# }
 
-validation {
-  condition = var.admin_note.lifecycle.other_automation == null || alltrue([
-    try(contains(["HRIS", "None"], var.admin_note.lifecycle.other_automation.create.type), false) ||
-    try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.create.link)), false) ||
-    try(var.admin_note.lifecycle.other_automation.create.link == "", false),
+# validation {
+#   condition = var.admin_note.lifecycle.other_automation == null || alltrue([
+#     try(contains(["HRIS", "None"], var.admin_note.lifecycle.other_automation.create.type), false) ||
+#     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.create.link)), false) ||
+#     try(var.admin_note.lifecycle.other_automation.create.link == "", false),
 
-    try(contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle.other_automation.update.type), false) ||
-    try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.update.link)), false) ||
-    try(var.admin_note.lifecycle.other_automation.update.link == "", false),
+#     try(contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle.other_automation.update.type), false) ||
+#     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.update.link)), false) ||
+#     try(var.admin_note.lifecycle.other_automation.update.link == "", false),
 
-    try(contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle.other_automation.deactivate.type), false) ||
-    try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.deactivate.link)), false) ||
-    try(var.admin_note.lifecycle.other_automation.deactivate.link == "", false)
-  ])
-  error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
-}
-}
+#     try(contains(["HRIS", "SCIM", "None"], var.admin_note.lifecycle.other_automation.deactivate.type), false) ||
+#     try(can(regex("^(https?://|www\\.)[^\\s/$.?#].[^\\s]*$", var.admin_note.lifecycle.other_automation.deactivate.link)), false) ||
+#     try(var.admin_note.lifecycle.other_automation.deactivate.link == "", false)
+#   ])
+#   error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
+# }
+# }
 
 variable "final_schema" {
   description = "Set this variable to false on the initial apply of an app with SCIM to avoid schema errors."
