@@ -51,11 +51,6 @@ output "features" {
 }
 
 
-output "schema_transformation_status" {
-  description = "Current app default schema"
-  value       = local.schema_transformation_status
-}
-
 output "existing_app_check" {
   description = "Details of any existing app with the same label"
   value = {

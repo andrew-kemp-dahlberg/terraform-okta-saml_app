@@ -15,6 +15,7 @@ variable "admin_note" {
     additional_notes       = optional(string)
   })
 
+
 validation {
   condition     = can(regex("^\\d{4}-\\d{2}-\\d{2}$", var.admin_note.last_access_audit_date)) || var.admin_note.last_access_audit_date == ""
   error_message = "Last access audit date must be in YYYY-MM-DD format or empty."
@@ -61,6 +62,12 @@ validation {
   ])
   error_message = "Automation links must be valid URLs starting with http://, https://, or www, or empty. Links can be null or empty if type is HRIS, SCIM, or None."
 }
+}
+
+variable "final_schema" {
+  description = "Set this variable to false on the initial apply of an app with SCIM to avoid schema errors."
+  type        = bool
+  default    = true
 }
 
 variable "saml_app" {

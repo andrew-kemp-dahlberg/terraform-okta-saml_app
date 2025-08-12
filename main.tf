@@ -1,6 +1,5 @@
-#
-## Application Configuration Locals
-#
+# main.tf
+
 
 # Data source to fetch authentication policy by name
 data "okta_policy" "authentication" {
@@ -8,14 +7,17 @@ data "okta_policy" "authentication" {
   type = "ACCESS_POLICY"
 }
 
+## Application Configuration Locals
+#
 locals {
-  # Admin Note Configuration
-  admin_note = {
-    name  = var.admin_note.saas_mgmt_name
-    sso   = var.admin_note.sso_enforced
-    owner = var.admin_note.app_owner
-    audit = var.admin_note.last_access_audit_date
-  }
+  # # Admin Note Configuration
+  # admin_note = {
+  #   name  = var.admin_note.saas_mgmt_name
+  #   sso   = var.admin_note.sso_enforced
+  #   owner = var.admin_note.app_owner
+  #   audit = var.admin_note.last_access_audit_date
+  # }
+
 
   # SAML Application Settings
   label       = coalesce(var.saml_app.label, var.name)
@@ -82,7 +84,7 @@ resource "okta_app_saml" "saml_app" {
 
   // Visual/UI settings
   logo                = var.saml_app.logo
-  admin_note          = jsonencode(local.admin_note)
+  admin_note          = null #jsonencode(local.admin_note)
   enduser_note        = var.saml_app.enduser_note
   hide_ios            = var.saml_app.hide_ios != null ? var.saml_app.hide_ios : (var.saml_app.preconfigured_app == null ? false : null)
   hide_web            = var.saml_app.hide_web != null ? var.saml_app.hide_web : (var.saml_app.preconfigured_app == null ? false : null)
@@ -210,26 +212,26 @@ data "external" "pre-condition" {
 #
 
 locals {
-  # Schema transformation status check
-  default_okta_schema = {
-    "id": "#base",
-    "type": "object",
-    "properties": {
-      "userName": {
-        "title": "Username",
-        "type": "string",
-        "required": true,
-        "scope": "NONE",
-        "maxLength": 100,
-        "master": {
-          "type": "PROFILE_MASTER"
-        }
-      }
-    },
-    "required": [
-      "userName"
-    ]
-  }
+  # # Schema transformation status check
+  # default_okta_schema = {
+  #   "id": "#base",
+  #   "type": "object",
+  #   "properties": {
+  #     "userName": {
+  #       "title": "Username",
+  #       "type": "string",
+  #       "required": true,
+  #       "scope": "NONE",
+  #       "maxLength": 100,
+  #       "master": {
+  #         "type": "PROFILE_MASTER"
+  #       }
+  #     }
+  #   },
+  #   "required": [
+  #     "userName"
+  #   ]
+  # }
 
   default_username_schema = [{
     id          = "userName"
@@ -242,16 +244,16 @@ locals {
     pattern     = null
   }]
 
-  schema_transformation_status = try(
-    jsondecode(data.http.schema.response_body).definitions.base != local.default_okta_schema || 
-    var.base_schema == local.default_username_schema ? 
-    "transformation complete or no transformation required" : 
-    "pre-transformation",
-    "pre-transformation"
-  )
+  # schema_transformation_status = try(
+  #   jsondecode(data.http.schema.response_body).definitions.base != local.default_okta_schema || 
+  #   var.base_schema == local.default_username_schema ? 
+  #   "transformation complete or no transformation required" : 
+  #   "pre-transformation",
+  #   "pre-transformation"
+  # )
 
   # Use base_schema directly - no complex transformation needed
-  processed_base_schema = local.schema_transformation_status == "pre-transformation" ? local.default_username_schema : var.base_schema
+  processed_base_schema = var.final_schema == false ? local.default_username_schema : var.base_schema
 
   # Use custom_schema directly
   processed_custom_schema = var.custom_schema
@@ -417,7 +419,7 @@ resource "okta_app_group_assignments" "app_groups" {
     iterator = grp
     content {
       id       = grp.value.id
-      profile  = local.schema_transformation_status == "transformation complete or no transformation required" ? jsonencode(var.roles[grp.key].profile) : jsonencode({})
+      profile  = var.final_schema == true ? jsonencode(var.roles[grp.key].profile) : jsonencode({})
       priority = grp.key + 1
     }
   }
