@@ -100,7 +100,7 @@ resource "okta_app_saml" "saml_app" {
   implicit_assignment   = var.saml_app.implicit_assignment != null ? var.saml_app.implicit_assignment : (var.saml_app.preconfigured_app == null ? false : null)
 
   // User management settings
-  user_name_template             = var.saml_app.user_name_template != null ? var.saml_app.user_name_template : (var.saml_app.preconfigured_app == null ? "${source.login}" : null)
+  user_name_template             = var.saml_app.user_name_template != null ? var.saml_app.user_name_template : (var.saml_app.preconfigured_app == null ? "$${source.login}" : null)
   user_name_template_type        = var.saml_app.user_name_template_type != null ? var.saml_app.user_name_template_type : (var.saml_app.preconfigured_app == null ? "BUILT_IN" : null)
   user_name_template_suffix      = var.saml_app.user_name_template_suffix
   user_name_template_push_status = var.saml_app.user_name_template_push_status
