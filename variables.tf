@@ -1,17 +1,4 @@
 # variables.tf
-variable "environment" {
-  description = "Information to authenticate with Okta Provider"
-  type = object({
-    org_name       = string
-    base_url       = string
-    client_id      = string
-    private_key_id = string
-    private_key    = string
-  })
-  sensitive = true
-}
-
-
 variable "name" {
   description = "Application label"
   type        = string
