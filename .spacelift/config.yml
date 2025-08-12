@@ -1,0 +1,5 @@
+version: 1
+module_version: "0.1.0"
+stack_defaults:
+  before_init:
+    - echo "Initializing authentication policy module"
