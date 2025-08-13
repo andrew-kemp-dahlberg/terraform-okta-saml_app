@@ -196,11 +196,11 @@ locals {
 resource "okta_app_user_base_schema_property" "base_schema" {
   for_each = {
     for schema in local.processed_base_schema :
-    schema.id => schema
+    schema.index => schema
   }
 
   app_id      = okta_app_saml.saml_app.id
-  index       = each.value.id
+  index       = each.value.index
   title       = each.value.title
   type        = each.value.type
   master      = each.value.master

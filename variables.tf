@@ -300,7 +300,7 @@ variable "roles" {
 variable "base_schema" {
   description = "Base schema properties for the application"
   type = list(object({
-    id          = string
+    index          = string
     title       = string
     type        = string
     master      = optional(string, "PROFILE_MASTER")
