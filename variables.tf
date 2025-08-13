@@ -353,7 +353,7 @@ variable "custom_schema" {
     title              = string
     type               = string
     description        = optional(string, null)
-    master             = optional(string, "OKTA")
+    master             = optional(string, "PROFILE_MASTER")
     permissions        = optional(string, null)
     required           = optional(bool, false)
     scope              = optional(string, null)
@@ -367,7 +367,7 @@ variable "custom_schema" {
     min_length         = optional(number, null)
     pattern            = optional(string, null)
     union              = optional(bool, false)  # Add this
-    unique             = optional(string, "NOT_UNIQUE")
+    unique             = optional(string, null)
     one_of = optional(list(object({
       const = string
       title = string
