@@ -217,7 +217,7 @@ resource "okta_app_user_schema_property" "custom_schema" {
   }
 
   app_id      = okta_app_saml.saml_app.id
-  index       = each.value.id
+  index       = each.value.index
   title       = each.value.title
   type        = each.value.type
   description = each.value.description
