@@ -366,6 +366,7 @@ variable "custom_schema" {
     max_length         = optional(number, null)
     min_length         = optional(number, null)
     pattern            = optional(string, null)
+    union              = optional(bool, false)  # Add this
     unique             = optional(string, "NOT_UNIQUE")
     one_of = optional(list(object({
       const = string
