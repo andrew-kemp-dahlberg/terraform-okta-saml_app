@@ -164,74 +164,12 @@ resource "okta_app_saml" "saml_app" {
   }
 }
 
-# data "okta_app_saml" "existing_app" {
-#   label = local.label
-# }
-
-# locals {
-#   saml_app_id = try(data.okta_app_saml.existing_app.id, "none")
-#   base_schema_url = "https://${var.environment.org_name}.${var.environment.base_url}/api/v1/meta/schemas/apps/${local.saml_app_id}/default"
-# }
-
-# data "http" "schema" {
-#   url = local.base_schema_url
-#   method = "GET"
-#   request_headers = {
-#     Accept = "application/json"
-#     Authorization = "SSWS ${var.environment.api_token}"
-#   }
-# }
-
-
-# data "external" "pre-condition" {
-#   program = ["bash", "-c", <<-EOT
-#     echo '{"running": "precondition"}'
-#   EOT
-#   ]
-
-#   lifecycle {
-#     # Check SAML app ID
-#     precondition {
-#       condition     = local.saml_app_id == "none" || local.saml_app_id == try(okta_app_saml.saml_app.id, "n/a")
-#       error_message = "An application with label '${local.label}' already exists in Okta outside of Terraform. Either modify the label in your configuration or delete/rename the existing application in Okta."
-#     }
-
-#     # Check schema API response
-#     precondition {
-#       condition = data.http.schema.status_code == 200 || local.saml_app_id == "none"
-#       error_message = "Schema API request failed with status code: ${data.http.schema.status_code}. Error: ${data.http.schema.response_body}"
-#     }
-#   }
-# }
-
-
-
-
 #
 ## Schema Configuration
 #
 
 locals {
-  # # Schema transformation status check
-  # default_okta_schema = {
-  #   "id": "#base",
-  #   "type": "object",
-  #   "properties": {
-  #     "userName": {
-  #       "title": "Username",
-  #       "type": "string",
-  #       "required": true,
-  #       "scope": "NONE",
-  #       "maxLength": 100,
-  #       "master": {
-  #         "type": "PROFILE_MASTER"
-  #       }
-  #     }
-  #   },
-  #   "required": [
-  #     "userName"
-  #   ]
-  # }
+
 
   default_username_schema = [{
     id          = "userName"
@@ -243,14 +181,6 @@ locals {
     user_type   = "default"
     pattern     = null
   }]
-
-  # schema_transformation_status = try(
-  #   jsondecode(data.http.schema.response_body).definitions.base != local.default_okta_schema || 
-  #   var.base_schema == local.default_username_schema ? 
-  #   "transformation complete or no transformation required" : 
-  #   "pre-transformation",
-  #   "pre-transformation"
-  # )
 
   # Use base_schema directly - no complex transformation needed
   processed_base_schema = var.final_schema == false ? local.default_username_schema : var.base_schema
@@ -283,7 +213,7 @@ resource "okta_app_user_base_schema_property" "base_schema" {
 resource "okta_app_user_schema_property" "custom_schema" {
   for_each = {
     for schema in local.processed_custom_schema :
-    schema.id => schema
+    schema.index => schema
   }
 
   app_id      = okta_app_saml.saml_app.id
