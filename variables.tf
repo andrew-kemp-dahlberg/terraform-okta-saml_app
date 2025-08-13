@@ -347,15 +347,16 @@ variable "base_schema" {
 }
 
 variable "custom_schema" {
-  description = "Custom schema properties for the application"
+  description = "Custom schema properties for the user"
   type = list(object({
-    id                 = string
+    index              = string
     title              = string
     type               = string
     description        = optional(string, null)
-    master             = optional(string, "PROFILE_MASTER")
+    master             = optional(string, "OKTA")
     permissions        = optional(string, "READ_ONLY")
     required           = optional(bool, false)
+    scope              = optional(string, "NONE")
     user_type          = optional(string, "default")
     array_enum         = optional(list(string), null)
     array_type         = optional(string, null)
@@ -364,7 +365,7 @@ variable "custom_schema" {
     external_namespace = optional(string, null)
     max_length         = optional(number, null)
     min_length         = optional(number, null)
-    union              = optional(bool, null)
+    pattern            = optional(string, null)
     unique             = optional(string, "NOT_UNIQUE")
     one_of = optional(list(object({
       const = string
@@ -374,9 +375,14 @@ variable "custom_schema" {
       const = string
       title = string
     })), null)
+    master_override_priority = optional(list(object({
+      type  = optional(string, null)
+      value = string
+    })), null)
   }))
-  
   default = []
+}
+
 
   validation {
     condition = alltrue([
