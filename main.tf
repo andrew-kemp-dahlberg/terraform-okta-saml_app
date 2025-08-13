@@ -245,8 +245,8 @@ resource "okta_app_user_schema_property" "custom_schema" {
   permissions        = coalesce(each.value.permissions, "READ_ONLY")
   required           = each.value.required
   union              = each.value.union
-  unique             = coalesce(each.value.unique, "NOT_UNIQUE")
-  user_type          = coalesce(each.value.user_type, "default")
+  unique             = each.value.unique
+  user_type          = each.value.user_type
 
   dynamic "one_of" {
     for_each = each.value.one_of != null ? each.value.one_of : []

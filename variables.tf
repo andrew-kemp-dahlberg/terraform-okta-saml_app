@@ -354,10 +354,10 @@ variable "custom_schema" {
     type               = string
     description        = optional(string, null)
     master             = optional(string, "OKTA")
-    permissions        = optional(string, "READ_ONLY")
+    permissions        = optional(string, null)
     required           = optional(bool, false)
-    scope              = optional(string, "NONE")
-    user_type          = optional(string, "default")
+    scope              = optional(string, null)
+    user_type          = optional(string, null)
     array_enum         = optional(list(string), null)
     array_type         = optional(string, null)
     enum               = optional(list(string), null)
