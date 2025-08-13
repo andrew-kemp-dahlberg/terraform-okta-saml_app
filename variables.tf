@@ -300,14 +300,14 @@ variable "roles" {
 variable "base_schema" {
   description = "Base schema properties for the application"
   type = list(object({
-    index          = string
+    index       = string
     title       = string
     type        = string
     master      = optional(string, "PROFILE_MASTER")
-    permissions = optional(string, "READ_ONLY")
+    pattern     = optional(string, null)
+    permissions = optional(string, "READ_WRITE")
     required    = optional(bool, false)
     user_type   = optional(string, null)
-    pattern     = optional(string, null)
   }))
   
   default = [{
