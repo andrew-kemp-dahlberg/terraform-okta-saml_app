@@ -242,7 +242,7 @@ resource "okta_app_user_schema_property" "custom_schema" {
   external_namespace = each.value.external_namespace
   max_length         = each.value.max_length
   min_length         = each.value.min_length
-  permissions        = coalesce(each.value.permissions, "READ_ONLY")
+  permissions        = each.value.permissions
   required           = each.value.required
   union              = each.value.union
   unique             = each.value.unique
