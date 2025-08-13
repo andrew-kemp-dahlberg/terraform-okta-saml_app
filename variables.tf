@@ -381,7 +381,6 @@ variable "custom_schema" {
     })), null)
   }))
   default = []
-}
 
 
   validation {
