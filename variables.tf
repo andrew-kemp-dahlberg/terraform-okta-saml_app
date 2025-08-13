@@ -306,7 +306,7 @@ variable "base_schema" {
     master      = optional(string, "PROFILE_MASTER")
     permissions = optional(string, "READ_ONLY")
     required    = optional(bool, false)
-    user_type   = optional(string, "default")
+    user_type   = optional(string, null)
     pattern     = optional(string, null)
   }))
   
