@@ -245,7 +245,7 @@ resource "okta_app_user_schema_property" "custom_schema" {
   permissions        = each.value.permissions
   required           = each.value.required
   union              = each.value.union
-  unique             = each.value.unique
+  unique             = each.value.type != "array" ? each.value.unique : null  # ← THIS IS THE FIX
   user_type          = each.value.user_type
 
   dynamic "one_of" {
@@ -256,7 +256,6 @@ resource "okta_app_user_schema_property" "custom_schema" {
     }
   }
 }
-
 #
 ## Profile Mappings
 #
