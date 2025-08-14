@@ -311,7 +311,7 @@ variable "base_schema" {
   }))
   
   default = [{
-    id          = "userName"
+    index          = "userName"
     title       = "Username"
     type        = "string"
     master      = "PROFILE_MASTER"
