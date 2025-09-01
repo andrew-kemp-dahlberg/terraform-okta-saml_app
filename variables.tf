@@ -320,30 +320,6 @@ variable "base_schema" {
     user_type   = "default"
     pattern     = null
   }]
-
-  validation {
-    condition = alltrue([
-      for item in var.base_schema :
-      contains(["string", "boolean", "number", "integer", "array", "object"], item.type)
-    ])
-    error_message = "Base schema type must be one of: string, boolean, number, integer, array, or object."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.base_schema :
-      item.master == null || contains(["PROFILE_MASTER", "OKTA"], item.master)
-    ])
-    error_message = "Base schema master must be one of: PROFILE_MASTER or OKTA."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.base_schema :
-      item.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions)
-    ])
-    error_message = "Base schema permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
-  }
 }
 
 variable "custom_schema" {
@@ -383,46 +359,6 @@ variable "custom_schema" {
   }))
   default = []
 
-
-  validation {
-    condition = alltrue([
-      for item in var.custom_schema :
-      contains(["string", "boolean", "number", "integer", "array", "object"], item.type)
-    ])
-    error_message = "Custom schema type must be one of: string, boolean, number, integer, array, or object."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.custom_schema :
-      item.master == null || contains(["PROFILE_MASTER", "OKTA"], item.master)
-    ])
-    error_message = "Custom schema master must be one of: PROFILE_MASTER or OKTA."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.custom_schema :
-      item.permissions == null || contains(["READ_WRITE", "READ_ONLY", "HIDE"], item.permissions)
-    ])
-    error_message = "Custom schema permissions must be one of: READ_WRITE, READ_ONLY, or HIDE."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.custom_schema :
-      item.unique == null || contains(["UNIQUE_VALIDATED", "NOT_UNIQUE"], item.unique)
-    ])
-    error_message = "Custom schema unique must be either UNIQUE_VALIDATED or NOT_UNIQUE."
-  }
-
-  validation {
-    condition = alltrue([
-      for item in var.custom_schema :
-      item.type != "array" || item.array_type != null
-    ])
-    error_message = "Custom schema array_type must be specified when type is set to array."
-  }
 }
 
 variable "profile_mappings" {
@@ -445,19 +381,4 @@ variable "profile_mappings" {
     to_okta = []
   }
 
-  validation {
-    condition = alltrue([
-      for mapping in var.profile_mappings.to_app :
-      mapping.push_status == null || contains(["PUSH", "DONT_PUSH"], mapping.push_status)
-    ])
-    error_message = "Profile mapping push_status must be either 'PUSH' or 'DONT_PUSH'."
-  }
-
-  validation {
-    condition = alltrue([
-      for mapping in var.profile_mappings.to_okta :
-      mapping.push_status == null || contains(["PUSH", "DONT_PUSH"], mapping.push_status)
-    ])
-    error_message = "Profile mapping push_status must be either 'PUSH' or 'DONT_PUSH'."
-  }
 }
